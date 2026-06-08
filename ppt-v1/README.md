@@ -10,19 +10,29 @@ Prerequis obligatoire : OpenCode Desktop est deja installe et le consultant est 
 
 Ne pas installer OpenCode Desktop.
 
-Ne pas installer opencode, npm, choco ou scoop.
+Ne pas installer opencode, npm, choco, scoop ou git.
+
+Git n'est pas requis.
+
+Ne pas utiliser git.
+
+Ne pas faire `git clone`.
+
+Ne pas verifier le depot avec git.
+
+L'installation se fait uniquement par telechargement HTTP des fichiers necessaires depuis `raw.githubusercontent.com`.
 
 Ne pas modifier la configuration globale `~/.config/opencode/`.
 
 Depuis OpenCode Desktop, dans le projet ou la commande doit etre disponible, demander :
 
 ```text
-Installer uniquement la commande projet /ppt-v1 depuis https://github.com/helie-co/agent-ia-local-ssg/ppt-v1. OpenCode Desktop est deja installe, ne pas l'installer.
+Installer uniquement la commande projet /ppt-v1 depuis https://github.com/helie-co/agent-ia-local-ssg/ppt-v1. OpenCode Desktop est deja installe, ne pas l'installer. Ne pas utiliser git.
 ```
 
 Si l'utilisateur demande `Installer la commande open code https://github.com/helie-co/agent-ia-local-ssg/ppt-v1`, l'agent doit comprendre qu'il s'agit d'installer uniquement la commande `/ppt-v1`, pas OpenCode Desktop.
 
-L'agent doit lire ce README puis executer uniquement l'installation projet-only suivante :
+L'agent doit lire ce README puis executer directement et uniquement l'installation projet-only suivante, sans utiliser git :
 
 ```powershell
 & ([scriptblock]::Create((Invoke-RestMethod "https://raw.githubusercontent.com/helie-co/agent-ia-local-ssg/main/ppt-v1/install.ps1"))) -ProjectPath (Get-Location).Path
