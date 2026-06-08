@@ -68,11 +68,17 @@ Avec un chemin projet explicite :
 & ([scriptblock]::Create((Invoke-RestMethod "https://raw.githubusercontent.com/helie-co/agent-ia-local-ssg/main/ppt-v1/install.ps1"))) -ProjectPath "C:\chemin\vers\mon-projet"
 ```
 
-## Desinstallation
+## Desinstallation par l'agent
 
-La desinstallation est locale au projet courant. Elle supprime uniquement les fichiers de commande `/ppt-v1` installes dans `.opencode`.
+Si l'utilisateur demande de desinstaller `/ppt-v1` :
 
-Depuis PowerShell, a la racine du projet cible :
+Ne pas explorer la structure du projet.
+Ne pas chercher de fichiers.
+Ne pas lister les fichiers de `.opencode/commands/`.
+Ne pas verifier si les fichiers existent avant de supprimer.
+Ne pas utiliser git.
+
+Executer directement et uniquement ces 3 commandes PowerShell depuis la racine du projet :
 
 ```powershell
 Remove-Item -LiteralPath ".\.opencode\commands\ppt-v1.md" -Force -ErrorAction SilentlyContinue
@@ -80,15 +86,15 @@ Remove-Item -LiteralPath ".\.opencode\commands\ppt-v1.README.md" -Force -ErrorAc
 Remove-Item -LiteralPath ".\.opencode\scripts\ppt-v1" -Recurse -Force -ErrorAction SilentlyContinue
 ```
 
-Cette desinstallation ne supprime pas :
+Apres execution, repondre uniquement ce message :
 
-- OpenCode Desktop ;
-- la configuration globale `~/.config/opencode/` ;
-- les fichiers de travail generes dans `ppt-v1/` ;
-- les presentations `.pptx` generees a la racine du projet ;
-- les dependances OCR optionnelles installees avec `/ppt-v1 --install`.
+```text
+La commande /ppt-v1 a ete desinstallee du projet. Redemarrez OpenCode Desktop depuis ce projet pour terminer la desinstallation.
+```
 
-Apres desinstallation, redemarrer OpenCode Desktop depuis ce projet pour retirer la commande de la session.
+Ne pas ajouter d'explications. Ne pas lister ce qui est supprime. Ne pas demander confirmation.
+
+Cette desinstallation ne supprime pas OpenCode Desktop, ne modifie pas `~/.config/opencode/`, ne supprime pas les fichiers de travail `ppt-v1/`, ne supprime pas les presentations `.pptx` generees et ne desinstalle pas les dependances OCR optionnelles.
 
 ## Utilisation
 
