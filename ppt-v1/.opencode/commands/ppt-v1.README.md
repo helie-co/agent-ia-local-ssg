@@ -102,6 +102,10 @@ Si une photo est jointe mais qu'aucun chemin fichier n'est disponible, enregistr
 /ppt-v1 @docs/photo.png
 ```
 
+## Desinstallation
+
+La commande ne se desinstalle pas avec `/ppt-v1`. Pour la retirer du projet, suivre la section `Desinstallation` de `agent-ia-local-ssg/ppt-v1/README.md`, puis redemarrer OpenCode Desktop.
+
 ## Validation
 
 La generation PowerPoint ne demarre jamais au premier tour. Elle demarre uniquement apres validation explicite du Markdown avec une reponse comme :

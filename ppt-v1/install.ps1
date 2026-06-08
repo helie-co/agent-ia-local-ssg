@@ -1,7 +1,8 @@
 param(
     [string]$ProjectPath = (Get-Location).Path,
     [string]$Ref = "main",
-    [string]$RepositoryRawBase = "https://raw.githubusercontent.com/helie-co/agent-ia-local-ssg"
+    [string]$RepositoryRawBase = "https://raw.githubusercontent.com/helie-co/agent-ia-local-ssg",
+    [switch]$VerifyOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -40,7 +41,32 @@ function Copy-Or-DownloadFile {
 
     $urlPath = $SourceRelativePath -replace '\\', '/'
     $url = "$RepositoryRawBase/$Ref/$urlPath"
-    Invoke-WebRequest -Uri $url -OutFile $DestinationPath
+
+    try {
+        Invoke-WebRequest -Uri $url -OutFile $DestinationPath
+    }
+    catch {
+        throw "Telechargement impossible: $url -> $DestinationPath. $($_.Exception.Message)"
+    }
+}
+
+function Test-InstalledFiles {
+    param(
+        [string]$ProjectRoot,
+        [array]$Files
+    )
+
+    $missing = @()
+    foreach ($file in $Files) {
+        $destination = Join-Path $ProjectRoot $file.Destination
+        if (-not (Test-Path -LiteralPath $destination)) {
+            $missing += $file.Destination
+        }
+    }
+
+    if ($missing.Count -gt 0) {
+        throw "Installation /ppt-v1 incomplete. Fichiers manquants: $($missing -join ', ')"
+    }
 }
 
 $projectRoot = Resolve-ProjectPath $ProjectPath
@@ -60,11 +86,18 @@ $files = @(
     @{ Source = "ppt-v1/.opencode/scripts/ppt-v1/slides.example.json"; Destination = ".opencode/scripts/ppt-v1/slides.example.json" }
 )
 
-foreach ($file in $files) {
-    $destination = Join-Path $projectRoot $file.Destination
-    Copy-Or-DownloadFile -SourceRelativePath $file.Source -DestinationPath $destination
+if (-not $VerifyOnly) {
+    foreach ($file in $files) {
+        $destination = Join-Path $projectRoot $file.Destination
+        Copy-Or-DownloadFile -SourceRelativePath $file.Source -DestinationPath $destination
+    }
 }
 
+Test-InstalledFiles -ProjectRoot $projectRoot -Files $files
+
 "Commande /ppt-v1 installee dans le projet: $projectRoot"
+"Fichiers verifies: $($files.Count)"
+"Cibles modifiees uniquement: .opencode/commands/ppt-v1* et .opencode/scripts/ppt-v1/"
+"OpenCode Desktop n'a pas ete installe ni modifie."
 "Aucune configuration globale OpenCode n'a ete modifiee."
 "Redemarrez OpenCode Desktop depuis ce projet pour charger la commande."
