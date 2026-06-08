@@ -6,12 +6,16 @@ Commandes OpenCode installables localement dans un projet.
 
 - [`/ppt-v1`](./ppt-v1/README.md) : prepare puis genere une presentation PowerPoint a partir de texte, Markdown, image ou PPTX source.
 
-## Installation depuis OpenCode Desktop
+## Installation d'une commande depuis OpenCode Desktop
+
+Prerequis : OpenCode Desktop est deja installe et le consultant est deja dans OpenCode Desktop.
+
+Ne pas installer OpenCode Desktop, opencode, npm, choco ou scoop. Cette procedure installe uniquement une commande projet.
 
 Depuis OpenCode Desktop, dans le projet cible, demander :
 
 ```text
-Installer la commande open code https://github.com/helie-co/agent-ia-local-ssg/ppt-v1
+Installer uniquement la commande projet /ppt-v1 depuis https://github.com/helie-co/agent-ia-local-ssg/ppt-v1. OpenCode Desktop est deja installe, ne pas l'installer.
 ```
 
 L'installation est locale au projet courant : elle cree ou met a jour `./.opencode/commands/` et `./.opencode/scripts/`, sans modifier la configuration globale OpenCode.

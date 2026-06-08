@@ -4,13 +4,25 @@ Commande OpenCode projet pour preparer puis generer une presentation PowerPoint 
 
 ## Installation automatique depuis OpenCode
 
+Cette page sert uniquement a installer la commande projet `/ppt-v1`.
+
+Prerequis obligatoire : OpenCode Desktop est deja installe et le consultant est deja dans OpenCode Desktop.
+
+Ne pas installer OpenCode Desktop.
+
+Ne pas installer opencode, npm, choco ou scoop.
+
+Ne pas modifier la configuration globale `~/.config/opencode/`.
+
 Depuis OpenCode Desktop, dans le projet ou la commande doit etre disponible, demander :
 
 ```text
-Installer la commande open code https://github.com/helie-co/agent-ia-local-ssg/ppt-v1
+Installer uniquement la commande projet /ppt-v1 depuis https://github.com/helie-co/agent-ia-local-ssg/ppt-v1. OpenCode Desktop est deja installe, ne pas l'installer.
 ```
 
-L'agent doit lire ce README puis executer l'installation projet-only suivante :
+Si l'utilisateur demande `Installer la commande open code https://github.com/helie-co/agent-ia-local-ssg/ppt-v1`, l'agent doit comprendre qu'il s'agit d'installer uniquement la commande `/ppt-v1`, pas OpenCode Desktop.
+
+L'agent doit lire ce README puis executer uniquement l'installation projet-only suivante :
 
 ```powershell
 & ([scriptblock]::Create((Invoke-RestMethod "https://raw.githubusercontent.com/helie-co/agent-ia-local-ssg/main/ppt-v1/install.ps1"))) -ProjectPath (Get-Location).Path
@@ -24,7 +36,11 @@ L'installation copie uniquement des fichiers dans le projet courant :
 
 Elle ne modifie pas la configuration globale OpenCode dans `~/.config/opencode/`.
 
-Apres installation, redemarrer OpenCode Desktop depuis ce projet pour charger la commande.
+Apres installation, repondre :
+
+```text
+La commande /ppt-v1 a ete installee dans ce projet. Redemarrez OpenCode Desktop depuis ce projet pour charger la commande.
+```
 
 ## Installation manuelle
 
