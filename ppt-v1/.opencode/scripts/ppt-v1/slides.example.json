@@ -1,0 +1,34 @@
+{
+  "cover": {
+    "deckTitle": "L'IA au service des metiers",
+    "deckSubtitle": "Comprendre les usages et les conditions d'adoption",
+    "date": "Juin 2026",
+    "authors": "Jean-Francois Helie"
+  },
+  "slides": [
+    {
+      "layout": "classic_bullets",
+      "placeholders": {
+        "{{TITLE}}": "Pourquoi l'IA devient un sujet cle",
+        "{{SUBTITLE}}": "Des usages accessibles, mais un cadre a installer",
+        "{{BODY}}": [
+          "Les outils deviennent simples a utiliser",
+          "Les gains sont visibles sur les activites repetitives",
+          "Les risques imposent des regles claires"
+        ]
+      }
+    },
+    {
+      "layout": "classic_bullets",
+      "placeholders": {
+        "{{TITLE}}": "Les conditions d'une adoption durable",
+        "{{SUBTITLE}}": "Passer de l'experimentation a des pratiques maitrisees",
+        "{{BODY}}": [
+          "Partir des irritants metier reels",
+          "Former les utilisateurs aux limites de l'IA",
+          "Partager les bonnes pratiques et les controles"
+        ]
+      }
+    }
+  ]
+}

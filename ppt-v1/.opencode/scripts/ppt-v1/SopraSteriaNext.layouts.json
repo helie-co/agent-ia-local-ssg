@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "template": "SopraSteriaNext.generated-template.pptx",
+  "rules": {
+    "preserveTemplateFormatting": true,
+    "doNotChangeFonts": true,
+    "doNotChangeColors": true,
+    "coverHasPageNumber": false,
+    "contentPageNumberFormat": "{0}",
+    "maxTitleCharacters": 90,
+    "maxSubtitleCharacters": 130,
+    "maxBulletCharacters": 120,
+    "recommendedMaxBulletsPerSlide": 5,
+    "allowBodyBullets": true
+  },
+  "layouts": [
+    {
+      "name": "cover",
+      "sourceSlide": 1,
+      "description": "Page de garde Sopra Steria Next.",
+      "requiredPlaceholders": [
+        "{{DECK_TITLE}}",
+        "{{DECK_SUBTITLE}}",
+        "{{DATE}}",
+        "{{AUTHORS}}"
+      ]
+    },
+    {
+      "name": "section_header",
+      "sourceSlide": 5,
+      "description": "Slide d'ouverture de chapitre.",
+      "requiredPlaceholders": [
+        "{{SECTION_TITLE}}",
+        "{{SECTION_SUBTITLE}}",
+        "{{SECTION_NUMBER}}"
+      ],
+      "optionalPlaceholders": [
+        "{{FOOTER_TITLE}}",
+        "{{PAGE_NUMBER}}"
+      ]
+    },
+    {
+      "name": "classic_bullets",
+      "sourceSlide": 15,
+      "description": "Slide classique avec titre, sous-titre et bullets.",
+      "requiredPlaceholders": [
+        "{{TITLE}}",
+        "{{SUBTITLE}}",
+        "{{BODY}}"
+      ],
+      "optionalPlaceholders": [
+        "{{FOOTER_TITLE}}",
+        "{{PAGE_NUMBER}}"
+      ]
+    }
+  ]
+}

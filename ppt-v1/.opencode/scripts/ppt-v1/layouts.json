@@ -1,0 +1,90 @@
+{
+  "version": 2,
+  "template": "Orange.template.pptx",
+  "rules": {
+    "preserveTemplateFormatting": true,
+    "doNotChangeFonts": true,
+    "doNotChangeColors": true,
+    "coverHasPageNumber": false,
+    "contentPageNumberFormat": "{0} / {1}",
+    "maxTitleCharacters": 90,
+    "maxSubtitleCharacters": 130,
+    "maxBulletCharacters": 120,
+    "recommendedMaxBulletsPerSlide": 5,
+    "allowBodyBullets": true
+  },
+  "layouts": [
+    {
+      "name": "cover",
+      "sourceSlide": 1,
+      "description": "Page de garde fixe, sans pagination.",
+      "requiredPlaceholders": [
+        "{{DECK_TITLE}}",
+        "{{DATE}}",
+        "{{AUTHORS}}"
+      ],
+      "optionalPlaceholders": [
+        "{{DECK_SUBTITLE}}"
+      ]
+    },
+    {
+      "name": "classic_bullets",
+      "sourceSlide": 2,
+      "description": "Slide classique avec titre, sous-titre et zone de bullets variable.",
+      "requiredPlaceholders": [
+        "{{TITLE}}",
+        "{{SUBTITLE}}",
+        "{{BODY}}"
+      ]
+    },
+    {
+      "name": "two_columns_bullets",
+      "sourceSlide": 4,
+      "description": "Slide de comparaison avec deux titres de colonnes et deux zones de bullets : gauche et droite.",
+      "requiredPlaceholders": [
+        "{{TITLE}}",
+        "{{SUBTITLE}}",
+        "{{LEFT_TITLE}}",
+        "{{LEFT_BODY}}",
+        "{{RIGHT_TITLE}}",
+        "{{RIGHT_BODY}}"
+      ],
+      "selectionCriteria": [
+        "Comparer deux categories equilibrees",
+        "Avantages / inconvenients",
+        "Pour / contre",
+        "Forces / limites",
+        "Opportunites / risques",
+        "Avant / apres",
+        "Problemes / reponses",
+        "Risques / parades",
+        "Benefices / conditions de succes",
+        "Ce que cela permet / ce que cela impose"
+      ]
+    },
+    {
+      "name": "table_dynamic",
+      "sourceSlide": 5,
+      "description": "Slide avec tableau PowerPoint dynamique et conclusion optionnelle.",
+      "requiredPlaceholders": [
+        "{{TITLE}}",
+        "{{SUBTITLE}}"
+      ],
+      "optionalPlaceholders": [
+        "{{CONCLUSION}}"
+      ],
+      "tableRules": {
+        "minColumns": 2
+      },
+      "selectionCriteria": [
+        "Comparer des objets selon les memes criteres avec colonnes homogenes",
+        "Utiliser seulement si l'utilisateur demande un tableau, une matrice ou une grille",
+        "Ne pas utiliser pour une opposition binaire simple comme avantages / inconvenients ou pour / contre",
+        "Presenter une matrice simple",
+        "Prioriser des cas d'usage",
+        "Lister actions, responsables, echeances et statuts",
+        "Structurer des risques et parades"
+      ]
+    }
+  ]
+}
