@@ -41,8 +41,8 @@ Modes supportes :
 Mode aide :
 
 - Si la demande est exactement `/ppt-v1 --help`, ne lance pas le workflow PowerPoint en 8 etapes.
-- Lis et affiche le contenu complet de `.opencode/commands/ppt-v1.README.md`.
-- Si le fichier README est introuvable, affiche une aide courte avec les modes supportes et indique que `.opencode/commands/ppt-v1.README.md` est manquant.
+- Lis et affiche le contenu complet de `.opencode/scripts/ppt-v1/README.md`.
+- Si le fichier README est introuvable, affiche une aide courte avec les modes supportes et indique que `.opencode/scripts/ppt-v1/README.md` est manquant.
 
 Mode installation :
 

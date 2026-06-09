@@ -83,6 +83,18 @@ Fichiers intermediaires principaux :
 
 Si `ppt-v1/deck.generated.md` ou `ppt-v1/slides.generated.json` n'existe pas encore, la commande doit creer le fichier complet. Elle ne doit pas tenter de patch/update sur un fichier absent.
 
+## Installation OCR
+
+L'installation de la commande depuis Git installe les fichiers `/ppt-v1`, mais n'installe pas Tesseract automatiquement.
+
+Pour activer l'OCR des images et des photos, lancer une fois :
+
+```text
+/ppt-v1 --install
+```
+
+Cette commande installe Tesseract OCR via `winget`, ajoute la langue francaise `fra.traineddata`, puis affiche le chemin de `tesseract.exe` et sa version.
+
 ## OCR
 
 `/ppt-v1 --install` installe :

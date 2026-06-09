@@ -73,7 +73,7 @@ $projectRoot = Resolve-ProjectPath $ProjectPath
 
 $files = @(
     @{ Source = "ppt-v1/.opencode/commands/ppt-v1.md"; Destination = ".opencode/commands/ppt-v1.md" },
-    @{ Source = "ppt-v1/.opencode/commands/ppt-v1.README.md"; Destination = ".opencode/commands/ppt-v1.README.md" },
+    @{ Source = "ppt-v1/.opencode/scripts/ppt-v1/README.md"; Destination = ".opencode/scripts/ppt-v1/README.md" },
     @{ Source = "ppt-v1/.opencode/scripts/ppt-v1/Extract-ImageOcr.ps1"; Destination = ".opencode/scripts/ppt-v1/Extract-ImageOcr.ps1" },
     @{ Source = "ppt-v1/.opencode/scripts/ppt-v1/Extract-PptContent.ps1"; Destination = ".opencode/scripts/ppt-v1/Extract-PptContent.ps1" },
     @{ Source = "ppt-v1/.opencode/scripts/ppt-v1/Get-PptLayouts.ps1"; Destination = ".opencode/scripts/ppt-v1/Get-PptLayouts.ps1" },
@@ -97,7 +97,7 @@ Test-InstalledFiles -ProjectRoot $projectRoot -Files $files
 
 "Commande /ppt-v1 installee dans le projet: $projectRoot"
 "Fichiers verifies: $($files.Count)"
-"Cibles modifiees uniquement: .opencode/commands/ppt-v1* et .opencode/scripts/ppt-v1/"
+"Cibles modifiees uniquement: .opencode/commands/ppt-v1.md et .opencode/scripts/ppt-v1/"
 "OpenCode Desktop n'a pas ete installe ni modifie."
 "Aucune configuration globale OpenCode n'a ete modifiee."
 "Redemarrez OpenCode Desktop depuis ce projet pour charger la commande."
