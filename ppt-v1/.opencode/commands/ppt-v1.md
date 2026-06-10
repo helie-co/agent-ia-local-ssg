@@ -180,6 +180,8 @@ Regles strictes :
 - Pour la cover, si l'utilisateur ne fournit pas d'auteur, laisse le champ auteur vide dans le JSON afin que le script recupere l'auteur par defaut de l'ordinateur/Office.
 - Ne mets jamais `OpenCode`, `Assistant`, `IA` ou le nom de l'outil comme auteur. Si l'auteur n'est pas explicitement fourni par l'utilisateur, laisse `authors` vide.
 - Ne change pas les polices, couleurs, positions ou formes dans le script.
+- Ne ferme jamais les presentations PowerPoint deja ouvertes par le consultant avant le lancement de `/ppt-v1`.
+- Les scripts PowerPoint doivent fermer uniquement les presentations qu'ils ouvrent eux-memes, et ne faire `PowerPoint.Quit()` que si aucune instance PowerPoint n'etait ouverte avant leur lancement.
 - Pour `Orange.template.pptx`, utilise une seule `cover`, puis choisis entre `classic_bullets` et `two_columns_bullets` pour chaque slide de contenu.
 - La slide classique utilise `{{TITLE}}`, `{{SUBTITLE}}`, `{{BODY}}`.
 - `{{BODY}}` contient des bullets multi-lignes, sans limite technique stricte.

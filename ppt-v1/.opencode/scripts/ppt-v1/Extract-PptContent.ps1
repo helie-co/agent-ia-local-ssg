@@ -83,6 +83,35 @@ function Test-OcrTextUseful {
     return ($signal -ge 12)
 }
 
+function Get-OpenPowerPointPresentationPaths {
+    $paths = @{}
+    try {
+        $activePowerPoint = [Runtime.InteropServices.Marshal]::GetActiveObject("PowerPoint.Application")
+        for ($i = 1; $i -le $activePowerPoint.Presentations.Count; $i++) {
+            try {
+                $fullName = [string]$activePowerPoint.Presentations.Item($i).FullName
+                if (-not [string]::IsNullOrWhiteSpace($fullName)) { $paths[$fullName.ToLowerInvariant()] = $true }
+            } catch {
+            }
+        }
+    } catch {
+    }
+    return $paths
+}
+
+function Close-PresentationIfOpenedByScript {
+    param($Presentation, [hashtable]$ExistingPresentationPaths)
+
+    if (-not $Presentation) { return }
+    try {
+        $fullName = [string]$Presentation.FullName
+        if ([string]::IsNullOrWhiteSpace($fullName) -or -not $ExistingPresentationPaths.ContainsKey($fullName.ToLowerInvariant())) {
+            $Presentation.Close()
+        }
+    } catch {
+    }
+}
+
 function Add-TextShape {
     param($Shape, [System.Collections.ArrayList]$Items)
 
@@ -208,6 +237,8 @@ $presentation = $null
 $ocrDirectory = Join-Path $outputParent "deck.extracted.ocr"
 $tesseractPath = if ($NoOcr) { $null } else { Get-TesseractPath }
 $tesseractLanguage = if ($tesseractPath) { Get-TesseractLanguage $tesseractPath } else { $null }
+$powerPointProcessCountBefore = @(Get-Process -Name POWERPNT -ErrorAction SilentlyContinue).Count
+$openPresentationPathsBefore = Get-OpenPowerPointPresentationPaths
 
 try {
     $powerPoint = New-Object -ComObject PowerPoint.Application
@@ -329,8 +360,8 @@ try {
     [System.IO.File]::WriteAllLines($OutputMarkdown, $lines, [System.Text.UTF8Encoding]::new($false))
     "Extraction terminee: $OutputMarkdown"
 } finally {
-    if ($presentation) { $presentation.Close() }
-    if ($powerPoint) { $powerPoint.Quit() }
+    Close-PresentationIfOpenedByScript $presentation $openPresentationPathsBefore
+    if ($powerPoint -and $powerPointProcessCountBefore -eq 0) { $powerPoint.Quit() }
     [System.GC]::Collect()
     [System.GC]::WaitForPendingFinalizers()
 }

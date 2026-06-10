@@ -128,6 +128,35 @@ function Test-InvalidAuthor {
     return @("OpenCode", "opencode", "Assistant", "AI", "IA") -contains $value
 }
 
+function Get-OpenPowerPointPresentationPaths {
+    $paths = @{}
+    try {
+        $activePowerPoint = [Runtime.InteropServices.Marshal]::GetActiveObject("PowerPoint.Application")
+        for ($i = 1; $i -le $activePowerPoint.Presentations.Count; $i++) {
+            try {
+                $fullName = [string]$activePowerPoint.Presentations.Item($i).FullName
+                if (-not [string]::IsNullOrWhiteSpace($fullName)) { $paths[$fullName.ToLowerInvariant()] = $true }
+            } catch {
+            }
+        }
+    } catch {
+    }
+    return $paths
+}
+
+function Close-PresentationIfOpenedByScript {
+    param($Presentation, [hashtable]$ExistingPresentationPaths)
+
+    if (-not $Presentation) { return }
+    try {
+        $fullName = [string]$Presentation.FullName
+        if ([string]::IsNullOrWhiteSpace($fullName) -or -not $ExistingPresentationPaths.ContainsKey($fullName.ToLowerInvariant())) {
+            $Presentation.Close()
+        }
+    } catch {
+    }
+}
+
 function Replace-Placeholders {
     param($Slide, [hashtable]$Values)
 
@@ -345,6 +374,8 @@ Copy-Item -LiteralPath $TemplatePath -Destination $OutputPath -Force
 
 $powerPoint = $null
 $presentation = $null
+$powerPointProcessCountBefore = @(Get-Process -Name POWERPNT -ErrorAction SilentlyContinue).Count
+$openPresentationPathsBefore = Get-OpenPowerPointPresentationPaths
 
 try {
     $powerPoint = New-Object -ComObject PowerPoint.Application
@@ -385,9 +416,9 @@ try {
 
         $layout = $layoutsByName[$layoutName]
         $sourceSlide = $presentation.Slides.Item([int]$layout.sourceSlide)
-        $sourceSlide.Copy()
-        $pasted = $presentation.Slides.Paste($presentation.Slides.Count + 1)
-        $newSlide = $pasted.Item(1)
+        $duplicated = $sourceSlide.Duplicate()
+        $newSlide = $duplicated.Item(1)
+        $newSlide.MoveTo($presentation.Slides.Count)
         $generatedSlides += $newSlide.SlideIndex
 
         $values = @{}
@@ -437,8 +468,8 @@ try {
         $overflow | ForEach-Object { "- $_" }
     }
 } finally {
-    if ($presentation) { $presentation.Close() }
-    if ($powerPoint) { $powerPoint.Quit() }
+    Close-PresentationIfOpenedByScript $presentation $openPresentationPathsBefore
+    if ($powerPoint -and $powerPointProcessCountBefore -eq 0) { $powerPoint.Quit() }
     [System.GC]::Collect()
     [System.GC]::WaitForPendingFinalizers()
 }

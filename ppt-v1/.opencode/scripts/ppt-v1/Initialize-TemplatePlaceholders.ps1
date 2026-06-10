@@ -107,8 +107,39 @@ function Set-TwoColumnsSlidePlaceholders {
     if ($bodyShapes.Count -ge 2) { $bodyShapes[1].Shape.TextFrame.TextRange.Text = "{{RIGHT_BODY}}" }
 }
 
+function Get-OpenPowerPointPresentationPaths {
+    $paths = @{}
+    try {
+        $activePowerPoint = [Runtime.InteropServices.Marshal]::GetActiveObject("PowerPoint.Application")
+        for ($i = 1; $i -le $activePowerPoint.Presentations.Count; $i++) {
+            try {
+                $fullName = [string]$activePowerPoint.Presentations.Item($i).FullName
+                if (-not [string]::IsNullOrWhiteSpace($fullName)) { $paths[$fullName.ToLowerInvariant()] = $true }
+            } catch {
+            }
+        }
+    } catch {
+    }
+    return $paths
+}
+
+function Close-PresentationIfOpenedByScript {
+    param($Presentation, [hashtable]$ExistingPresentationPaths)
+
+    if (-not $Presentation) { return }
+    try {
+        $fullName = [string]$Presentation.FullName
+        if ([string]::IsNullOrWhiteSpace($fullName) -or -not $ExistingPresentationPaths.ContainsKey($fullName.ToLowerInvariant())) {
+            $Presentation.Close()
+        }
+    } catch {
+    }
+}
+
 $powerPoint = $null
 $presentation = $null
+$powerPointProcessCountBefore = @(Get-Process -Name POWERPNT -ErrorAction SilentlyContinue).Count
+$openPresentationPathsBefore = Get-OpenPowerPointPresentationPaths
 
 try {
     $powerPoint = New-Object -ComObject PowerPoint.Application
@@ -139,8 +170,8 @@ try {
     $presentation.Save()
     "Template initialise: $TemplatePath"
 } finally {
-    if ($presentation) { $presentation.Close() }
-    if ($powerPoint) { $powerPoint.Quit() }
+    Close-PresentationIfOpenedByScript $presentation $openPresentationPathsBefore
+    if ($powerPoint -and $powerPointProcessCountBefore -eq 0) { $powerPoint.Quit() }
     [System.GC]::Collect()
     [System.GC]::WaitForPendingFinalizers()
 }

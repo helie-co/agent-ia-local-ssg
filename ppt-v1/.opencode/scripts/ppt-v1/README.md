@@ -152,6 +152,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\.opencode\scripts\ppt-v1\G
 
 Ne lance pas directement un script `.ps1` avec `& .\script.ps1`, car la politique d'execution Windows peut bloquer l'execution directe.
 
+Les scripts PowerPoint ne doivent pas fermer les presentations deja ouvertes par le consultant. Ils ferment uniquement les presentations qu'ils ouvrent eux-memes et ne quittent PowerPoint que si aucune instance n'etait ouverte avant le lancement du script.
+
 ## Templates
 
 Si aucun template n'est fourni, `/ppt-v1` cherche les fichiers :
