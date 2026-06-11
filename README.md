@@ -5,28 +5,41 @@ Commandes OpenCode installables localement dans un projet.
 ## Commandes disponibles
 
 - [`/ppt-v1`](./ppt-v1/README.md) : prepare puis genere une presentation PowerPoint a partir de texte, Markdown, image ou PPTX source.
+- [`/rec`](./rec/README.md) : enregistrement ecran/audio avec transcription live (whisper.cpp), fusion des chunks, et gestion des sessions.
 
 ## Installation d'une commande depuis OpenCode Desktop
 
 Prerequis : OpenCode Desktop est deja installe et le consultant est deja dans OpenCode Desktop.
 
-Ne pas installer OpenCode Desktop, opencode, npm, choco, scoop ou git. Cette procedure installe uniquement une commande projet.
+Ne pas installer OpenCode Desktop, opencode, npm, choco, scoop ou git. Git n'est pas requis. L'installation se fait uniquement par telechargement HTTP des fichiers necessaires. L'installation est locale au projet courant : elle cree ou met a jour `./.opencode/commands/` et `./.opencode/scripts/`, sans modifier la configuration globale OpenCode.
 
-Git n'est pas requis. Ne pas utiliser `git clone` et ne pas verifier le depot avec git. L'installation se fait uniquement par telechargement HTTP des fichiers necessaires.
+Apres installation, redemarrer OpenCode Desktop depuis ce projet.
+
+### Installation de /ppt-v1
 
 Depuis OpenCode Desktop, dans le projet cible, demander :
 
 ```text
-Installer uniquement la commande projet /ppt-v1 depuis https://github.com/helie-co/agent-ia-local-ssg/tree/main/ppt-v1. OpenCode Desktop est deja installe, ne pas l'installer. Ne pas utiliser git.
+Installer uniquement la commande projet /ppt-v1 depuis https://github.com/helie-co/agent-ia-local-ssg/tree/main/ppt-v1. OpenCode Desktop est deja installe, ne pas l installer. Ne pas utiliser git.
 ```
 
 Si l'utilisateur donne l'ancienne URL courte `https://github.com/helie-co/agent-ia-local-ssg/ppt-v1`, l'interpreter comme le dossier `ppt-v1` de la branche `main`. Cette URL courte peut renvoyer `404` dans GitHub et ne doit pas declencher de `git clone`.
 
-L'installation est locale au projet courant : elle cree ou met a jour `./.opencode/commands/` et `./.opencode/scripts/`, sans modifier la configuration globale OpenCode.
+Fallback sans git : si le telechargement brut fichier par fichier echoue, telecharger l'archive HTTP de la branche `main` et extraire uniquement `ppt-v1/.opencode` vers le projet cible.
 
-Fallback sans git : si le telechargement brut fichier par fichier echoue, telecharger l'archive HTTP de la branche `main` et extraire uniquement `ppt-v1/.opencode` vers le projet cible. Ne pas copier le reste du depot.
+### Installation de /rec
 
-Apres installation, redemarrer OpenCode Desktop depuis ce projet pour charger la commande.
+Depuis OpenCode Desktop, dans le projet cible, demander :
+
+```text
+Installer uniquement la commande projet /rec depuis https://github.com/helie-co/agent-ia-local-ssg/tree/main/rec. OpenCode Desktop est deja installe, ne pas l installer. Ne pas utiliser git.
+```
+
+Apres installation, lancer `/rec --install` dans OpenCode pour installer les dependances (ffmpeg, whisper, modele), puis redemarrer OpenCode Desktop.
+
+Si l'utilisateur donne l'ancienne URL courte `https://github.com/helie-co/agent-ia-local-ssg/rec`, l'interpreter comme le dossier `rec` de la branche `main`. Cette URL courte peut renvoyer `404` dans GitHub et ne doit pas declencher de `git clone`.
+
+Fallback sans git : si le telechargement brut fichier par fichier echoue, telecharger l'archive HTTP de la branche `main` et extraire uniquement `rec/.opencode` vers le projet cible.
 
 ## Desinstallation d'une commande projet par l'agent
 
@@ -51,3 +64,26 @@ La commande /ppt-v1 a ete desinstallee du projet. Redemarrez OpenCode Desktop de
 ```
 
 Cette desinstallation ne supprime pas OpenCode Desktop, ne modifie pas `~/.config/opencode/`, ne supprime pas les fichiers de travail `ppt-v1/`, ne supprime pas les presentations `.pptx` generees et ne desinstalle pas les dependances OCR optionnelles.
+
+### Desinstallation de /rec
+
+Si l'utilisateur demande de desinstaller `/rec` :
+
+Ne pas explorer la structure du projet.
+Ne pas chercher de fichiers.
+Ne pas utiliser git.
+
+Executer directement ces commandes PowerShell depuis la racine du projet cible :
+
+```powershell
+Remove-Item -LiteralPath ".\.opencode\commands\rec.md" -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath ".\.opencode\scripts\rec" -Recurse -Force -ErrorAction SilentlyContinue
+```
+
+Apres execution, repondre :
+
+```text
+La commande /rec a ete desinstallee du projet. Redemarrez OpenCode Desktop depuis ce projet pour terminer la desinstallation.
+```
+
+Cette desinstallation ne supprime pas OpenCode Desktop, ne modifie pas `~/.config/opencode/`, ne supprime pas les fichiers de travail `recordings/`, ne supprime pas les fichiers `.mp3`/`.mp4`/`.txt` generes et ne desinstalle pas les dependances (ffmpeg, whisper, modele).
