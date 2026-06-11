@@ -80,7 +80,9 @@ function Get-WhisperCliPath {
   New-Item -ItemType Directory -Force -Path $Script:ToolsRoot | Out-Null
   if (Test-Path $Script:WhisperDir) { Remove-Item $Script:WhisperDir -Recurse -Force }
 
-  Invoke-WebRequest -Uri 'https://github.com/ggml-org/whisper.cpp/releases/latest/download/whisper-bin-x64.zip' -OutFile $zip -ErrorAction Stop
+  (New-Object System.Net.WebClient).DownloadFile('https://github.com/ggml-org/whisper.cpp/releases/latest/download/whisper-bin-x64.zip', $zip)
+  if (-not (Test-Path $zip)) { throw 'Echec du telechargement de whisper-cli' }
+
   Expand-Archive -LiteralPath $zip -DestinationPath $Script:WhisperDir -Force
   Remove-Item $zip -Force
 
@@ -94,13 +96,23 @@ function Get-WhisperModelPath {
   if ($script:WhisperModelPath) { return $script:WhisperModelPath }
 
   $model = Join-Path $Script:WhisperDir 'models\ggml-small.bin'
-  if (Test-Path $model) { $script:WhisperModelPath = $model; return $script:WhisperModelPath }
+  if (Test-Path $model) {
+    $size = (Get-Item $model).Length
+    if ($size -gt 400MB) { $script:WhisperModelPath = $model; return $script:WhisperModelPath }
+    Write-Output "[transcribe] Modele incomplet (${size} octets), re-telechargement..."
+    Remove-Item $model -Force
+  }
 
-  Write-Output '[transcribe] Modele whisper introuvable. Telechargement...'
+  Write-Output '[transcribe] Telechargement du modele whisper (~465 Mo)...'
   New-Item -ItemType Directory -Force -Path (Split-Path $model) | Out-Null
-  Invoke-WebRequest -Uri 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin' -OutFile $model -ErrorAction Stop
+  (New-Object System.Net.WebClient).DownloadFile('https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin', $model)
+  if (-not (Test-Path $model)) { throw 'Echec du telechargement du modele whisper' }
+
+  $size = (Get-Item $model).Length
+  if ($size -lt 400MB) { throw "Modele telecharge invalide (${size} octets). Reessaye manuellement." }
 
   $script:WhisperModelPath = $model
+  Write-Output "[transcribe] Modele telecharge : $([math]::Round($size/1MB, 1)) Mo"
   return $script:WhisperModelPath
 }
 
@@ -254,7 +266,7 @@ do {
 }
 
 function Start-LiveTranscriber($ffmpegPid, $timestamp, $mode, $language) {
-  $scriptPath = Join-Path (Get-Location) '.opencode\scripts\rec\rec.ps1'
+  $scriptPath = Join-Path (Get-Location) '.opencode\scripts\rec.ps1'
   $cmdLine = "& '$scriptPath' -WatchTranscript -FfmpegPid $ffmpegPid -Timestamp '$timestamp' -Mode '$mode' -Language '$language'"
   $bytes = [Text.Encoding]::Unicode.GetBytes($cmdLine)
   $encoded = [Convert]::ToBase64String($bytes)
@@ -383,19 +395,22 @@ function Invoke-TranscribeChunk($chunkFile, $language) {
   $inputForWhisper = $chunkFile.FullName
   $wavFile = $null
 
+  $modelSize = (Get-Item $model).Length
+  if ($modelSize -lt 400MB) { throw "Modele whisper incomplet (${modelSize} octets). Supprime le fichier et relance la transcription pour re-telecharger." }
+
   if ($chunkFile.Extension -in '.ts', '.mp4') {
     $wavFile = Join-Path $chunkFile.DirectoryName "$($chunkFile.BaseName)_audio.wav"
-    & $ffmpeg -y -i $chunkFile.FullName -vn -ac 1 -ar 16000 $wavFile 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Extraction audio a echoue pour $($chunkFile.Name)" }
+    $ffErr = & $ffmpeg -y -i $chunkFile.FullName -vn -ac 1 -ar 16000 $wavFile 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "Extraction audio a echoue pour $($chunkFile.Name) : $ffErr" }
     $inputForWhisper = $wavFile
   }
 
   $outBase = Join-Path $chunkFile.DirectoryName $chunkFile.BaseName
-  & $whisperCli -m $model -l $language -f $inputForWhisper -otxt -of $outBase 2>&1 | Out-Null
+  $whisperErr = & $whisperCli -m $model -l $language -f $inputForWhisper -otxt -of $outBase 2>&1
 
   if ($wavFile -and (Test-Path $wavFile)) { Remove-Item $wavFile -Force }
 
-  if ($LASTEXITCODE -ne 0) { throw "whisper-cli a echoue pour $($chunkFile.Name)" }
+  if ($LASTEXITCODE -ne 0) { throw "whisper-cli a echoue pour $($chunkFile.Name) : $whisperErr" }
 }
 
 function Read-TextFile($path) {
@@ -424,7 +439,7 @@ function Concat-Chunks($timestamp, $chunks, $finalFile) {
 }
 
 function Start-FinalizeAsync($session, $language) {
-  $scriptPath = Join-Path (Get-Location) '.opencode\scripts\rec\rec.ps1'
+  $scriptPath = Join-Path (Get-Location) '.opencode\scripts\rec.ps1'
   $tempFile = Join-Path $env:TEMP "rec_finalize_$([guid]::NewGuid().ToString('N')).ps1"
   $finalScript = @"
 `$root = '$((Split-Path $session.output_file -Parent).Replace("'","''"))'
@@ -575,14 +590,17 @@ function Invoke-TranscribeFile($file, $language) {
   $model = Get-WhisperModelPath
   $ffmpeg = Get-FfmpegPath
 
+  $modelSize = (Get-Item $model).Length
+  if ($modelSize -lt 400MB) { throw "Modele whisper incomplet (${modelSize} octets). Supprime le fichier et relance la transcription pour re-telecharger." }
+
   $whisperInput = $src.FullName
   $tempWav = $null
 
   if ($src.Extension -in '.mp4', '.ts', '.mov', '.mkv', '.webm') {
     Write-Output "[transcribe] extraction audio de $($src.Name)..."
     $tempWav = Join-Path $src.DirectoryName "$($src.BaseName)_audio.wav"
-    & $ffmpeg -y -i $src.FullName -vn -ac 1 -ar 16000 $tempWav 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Extraction audio a echoue" }
+    $ffErr = & $ffmpeg -y -i $src.FullName -vn -ac 1 -ar 16000 $tempWav 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "Extraction audio a echoue : $ffErr" }
     $whisperInput = $tempWav
   }
 
