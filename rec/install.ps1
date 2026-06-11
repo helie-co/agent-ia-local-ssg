@@ -86,12 +86,75 @@ if (-not $VerifyOnly) {
 
 Test-InstalledFiles -ProjectRoot $projectRoot -Files $files
 
-"Commande /rec installee dans le projet: $projectRoot"
-"Fichiers verifies: $($files.Count)"
-"Cibles modifiees uniquement: .opencode/commands/rec.md et .opencode/scripts/rec/"
-"OpenCode Desktop n'a pas ete installe ni modifie."
-"Aucune configuration globale OpenCode n'a ete modifiee."
-"Redemarrez OpenCode Desktop depuis ce projet pour charger la commande."
-""
-"Pour installer les dependances (ffmpeg, whisper, modele), lancez ensuite depuis OpenCode:"
-"/rec --install"
+Write-Output "Commande /rec installee dans le projet: $projectRoot"
+Write-Output "Fichiers verifies: $($files.Count)"
+Write-Output ""
+
+# --- Installation des dependances ---
+$toolsRoot = Join-Path $env:LOCALAPPDATA 'opencode-tools'
+$whisperDir = Join-Path $toolsRoot 'whisper.cpp'
+$modelDir = Join-Path $whisperDir 'models'
+$modelFile = Join-Path $modelDir 'ggml-small.bin'
+
+Write-Output "=== Installation des dependances ==="
+
+# --- ffmpeg ---
+$ffmpegCmd = Get-Command ffmpeg -ErrorAction SilentlyContinue
+if (-not $ffmpegCmd) {
+  Write-Output "Installation de ffmpeg (winget)..."
+  winget install -e --id Gyan.FFmpeg --accept-source-agreements --accept-package-agreements | Out-Null
+  $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+  $ffmpegCmd = Get-Command ffmpeg -ErrorAction SilentlyContinue
+}
+if (-not $ffmpegCmd) {
+  $candidate = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter ffmpeg.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+  if ($candidate) { Write-Output "ffmpeg trouve dans WinGet: $candidate" }
+}
+if ($ffmpegCmd) { Write-Output "ffmpeg: $($ffmpegCmd.Source)" } else { Write-Output "ffmpeg: NON installe (verifier le log)" }
+
+# --- whisper-cli ---
+$whisperCli = Join-Path $whisperDir 'Release\whisper-cli.exe'
+if (-not (Test-Path $whisperCli)) {
+  Write-Output "Telechargement de whisper-cli..."
+  $null = New-Item -ItemType Directory -Force -Path $whisperDir
+  $zip = Join-Path $toolsRoot 'whisper-bin-x64.zip'
+  try {
+    Invoke-WebRequest -Uri 'https://github.com/ggml-org/whisper.cpp/releases/latest/download/whisper-bin-x64.zip' -OutFile $zip -ErrorAction Stop
+    Expand-Archive -LiteralPath $zip -DestinationPath $whisperDir -Force
+    Remove-Item $zip -Force
+    $found = Get-ChildItem $whisperDir -Recurse -Filter 'whisper-cli.exe' -File | Where-Object { $_.FullName -match '\\Release\\' } | Select-Object -First 1 -ExpandProperty FullName
+    if ($found) { $whisperCli = $found }
+  } catch { Write-Output "Echec telechargement whisper-cli: $_" }
+}
+if (Test-Path $whisperCli) { Write-Output "whisper-cli: $whisperCli" } else { Write-Output "whisper-cli: NON installe" }
+
+# --- modele whisper ---
+if (-not (Test-Path $modelFile)) {
+  Write-Output "Telechargement du modele ggml-small.bin..."
+  $null = New-Item -ItemType Directory -Force -Path $modelDir
+  try {
+    Invoke-WebRequest -Uri 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin' -OutFile $modelFile -ErrorAction Stop
+  } catch { Write-Output "Echec telechargement modele: $_" }
+}
+if (Test-Path $modelFile) {
+  $size = (Get-Item $modelFile).Length
+  Write-Output "modele: $modelFile ($($size / 1MB -as [int]) Mo)"
+} else { Write-Output "modele: NON installe" }
+
+# --- Stereo Mix ---
+$ffmpegExe = if ($ffmpegCmd) { $ffmpegCmd.Source } else { $null }
+if ($ffmpegExe) {
+  $output = & cmd.exe /d /c "`"$ffmpegExe`" -hide_banner -list_devices true -f dshow -i dummy 2>&1" | Out-String
+  $hasStereoMix = $output -match '(?i)stereo mix|mixage stereo|what u hear'
+  if ($hasStereoMix) {
+    Write-Output "stereo_mix: detecte"
+  } else {
+    Write-Output "stereo_mix: absent"
+    Write-Output "Ouverture de la fenetre Son (onglet Enregistrement)..."
+    Write-Output "Activez Stereo Mix : clic droit > Afficher les peripheriques desactives > Activer"
+    $null = Start-Process 'control' -ArgumentList 'mmsys.cpl,,1'
+  }
+}
+
+Write-Output ""
+Write-Output "Installation terminee. Redemarrez OpenCode Desktop depuis ce projet pour charger la commande."

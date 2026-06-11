@@ -13,10 +13,10 @@ Mode aide :
 - Lis et affiche le contenu complet de `.opencode/scripts/rec/README.md`.
 - Si le fichier README est introuvable, affiche une aide courte avec les modes supportes et indique que `.opencode/scripts/rec/README.md` est manquant.
 
-Mode installation :
+Mode (re)installation des dependances :
 
 - Si la demande est exactement `/rec --install`, ne lance pas le workflow d'enregistrement.
-- Execute le bloc PowerShell ci-dessous pour installer les dependances : ffmpeg, whisper-cli, modele whisper, et verifier Stereo Mix.
+- Execute le bloc PowerShell ci-dessous pour installer ou reparer les dependances : ffmpeg, whisper-cli, modele whisper, et verifier Stereo Mix.
 
 Commande a executer pour `/rec --install` :
 

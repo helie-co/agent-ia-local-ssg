@@ -35,7 +35,7 @@ Depuis OpenCode Desktop, dans le projet cible, demander :
 Installer uniquement la commande projet /rec depuis https://github.com/helie-co/agent-ia-local-ssg/tree/main/rec. OpenCode Desktop est deja installe, ne pas l installer. Ne pas utiliser git.
 ```
 
-Apres installation, lancer `/rec --install` dans OpenCode pour installer les dependances (ffmpeg, whisper, modele), puis redemarrer OpenCode Desktop.
+Les dependances (ffmpeg, whisper, modele) sont installees automatiquement. Apres installation, redemarrer OpenCode Desktop.
 
 Si l'utilisateur donne l'ancienne URL courte `https://github.com/helie-co/agent-ia-local-ssg/rec`, l'interpreter comme le dossier `rec` de la branche `main`. Cette URL courte peut renvoyer `404` dans GitHub et ne doit pas declencher de `git clone`.
 
