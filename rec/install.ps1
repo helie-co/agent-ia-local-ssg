@@ -99,18 +99,35 @@ $modelFile = Join-Path $modelDir 'ggml-small.bin'
 Write-Output "=== Installation des dependances ==="
 
 # --- ffmpeg ---
+$ffmpegExe = $null
+
+# 1) Chercher dans le PATH
 $ffmpegCmd = Get-Command ffmpeg -ErrorAction SilentlyContinue
-if (-not $ffmpegCmd) {
+if ($ffmpegCmd) { $ffmpegExe = $ffmpegCmd.Source }
+
+# 2) Chercher dans WinGet Packages si pas dans le PATH
+if (-not $ffmpegExe) {
+  $candidate = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter ffmpeg.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+  if ($candidate) { $ffmpegExe = $candidate }
+}
+
+# 3) Installer via winget si toujours introuvable
+if (-not $ffmpegExe) {
   Write-Output "Installation de ffmpeg (winget)..."
   winget install -e --id Gyan.FFmpeg --accept-source-agreements --accept-package-agreements | Out-Null
+  # Recharger le PATH depuis le systeme
   $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+  # Revérifier dans le PATH
   $ffmpegCmd = Get-Command ffmpeg -ErrorAction SilentlyContinue
+  if ($ffmpegCmd) { $ffmpegExe = $ffmpegCmd.Source }
+  # Revérifier dans WinGet Packages
+  if (-not $ffmpegExe) {
+    $candidate = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter ffmpeg.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+    if ($candidate) { $ffmpegExe = $candidate }
+  }
 }
-if (-not $ffmpegCmd) {
-  $candidate = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter ffmpeg.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
-  if ($candidate) { Write-Output "ffmpeg trouve dans WinGet: $candidate" }
-}
-if ($ffmpegCmd) { Write-Output "ffmpeg: $($ffmpegCmd.Source)" } else { Write-Output "ffmpeg: NON installe (verifier le log)" }
+
+if ($ffmpegExe) { Write-Output "ffmpeg: $ffmpegExe" } else { Write-Output "ffmpeg: NON installe" }
 
 # --- whisper-cli ---
 $whisperCli = Join-Path $whisperDir 'Release\whisper-cli.exe'
@@ -142,7 +159,6 @@ if (Test-Path $modelFile) {
 } else { Write-Output "modele: NON installe" }
 
 # --- Stereo Mix ---
-$ffmpegExe = if ($ffmpegCmd) { $ffmpegCmd.Source } else { $null }
 if ($ffmpegExe) {
   $output = & cmd.exe /d /c "`"$ffmpegExe`" -hide_banner -list_devices true -f dshow -i dummy 2>&1" | Out-String
   $hasStereoMix = $output -match '(?i)stereo mix|mixage stereo|what u hear'

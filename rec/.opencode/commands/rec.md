@@ -29,20 +29,34 @@ $modelDir = Join-Path $whisperDir 'models'
 $modelFile = Join-Path $modelDir 'ggml-small.bin'
 
 # --- ffmpeg ---
-$ffmpeg = Get-Command ffmpeg -ErrorAction SilentlyContinue
-if (-not $ffmpeg) {
+$ffmpegExe = $null
+
+# 1) Chercher dans le PATH
+$ffmpegCmd = Get-Command ffmpeg -ErrorAction SilentlyContinue
+if ($ffmpegCmd) { $ffmpegExe = $ffmpegCmd.Source }
+
+# 2) Chercher dans WinGet Packages si pas dans le PATH
+if (-not $ffmpegExe) {
+  $candidate = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter ffmpeg.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+  if ($candidate) { $ffmpegExe = $candidate }
+}
+
+# 3) Installer via winget si toujours introuvable
+if (-not $ffmpegExe) {
   Write-Output 'Installation de ffmpeg...'
   winget install -e --id Gyan.FFmpeg --accept-source-agreements --accept-package-agreements
   $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
-  $ffmpeg = Get-Command ffmpeg -ErrorAction SilentlyContinue
+  $ffmpegCmd = Get-Command ffmpeg -ErrorAction SilentlyContinue
+  if ($ffmpegCmd) { $ffmpegExe = $ffmpegCmd.Source }
+  if (-not $ffmpegExe) {
+    $candidate = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter ffmpeg.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+    if ($candidate) { $ffmpegExe = $candidate }
+  }
 }
-if (-not $ffmpeg) {
-  $candidate = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter ffmpeg.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
-  if ($candidate) { $script:FfmpegPath = $candidate }
-}
-if (-not $ffmpeg -and -not $candidate) { throw 'ffmpeg introuvable apres installation' }
 
-"ffmpeg=$($ffmpeg.Source)"
+if (-not $ffmpegExe) { throw 'ffmpeg introuvable apres installation' }
+
+"ffmpeg=$ffmpegExe"
 
 # --- whisper-cli ---
 $whisperCli = Join-Path $whisperDir 'Release\whisper-cli.exe'
@@ -72,7 +86,6 @@ $modelSize = (Get-Item $modelFile).Length
 "modele_taille=$($modelSize) octets"
 
 # --- Stereo Mix ---
-$ffmpegExe = if ($ffmpeg) { $ffmpeg.Source } else { $candidate }
 $output = & cmd.exe /d /c "`"$ffmpegExe`" -hide_banner -list_devices true -f dshow -i dummy 2>&1" | Out-String
 $hasStereoMix = $output -match '(?i)stereo mix|mixage stereo|what u hear'
 if ($hasStereoMix) {
