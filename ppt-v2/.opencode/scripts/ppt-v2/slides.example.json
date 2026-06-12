@@ -1,0 +1,54 @@
+{
+  "cover": {
+    "deckTitle": "Titre de votre presentation",
+    "deckSubtitle": "Sous-titre optionnel",
+    "date": "DATE",
+    "authors": "Votre Nom"
+  },
+  "slides": [
+    {
+      "layout": "card_3",
+      "placeholders": {
+        "{{TITLE}}": "Titre diapositive 3 cartes",
+        "{{SUBTITLE}}": "Sous-titre optionnel"
+      },
+      "cards": [
+        { "title": "Carte 1", "body": ["Point 1", "Point 2", "Point 3"] },
+        { "title": "Carte 2", "body": ["Point A", "Point B"] },
+        { "title": "Carte 3", "body": ["Point X", "Point Y", "Point Z"] }
+      ]
+    },
+    {
+      "layout": "card_2",
+      "placeholders": {
+        "{{TITLE}}": "Titre diapositive 2 cartes",
+        "{{SUBTITLE}}": "Sous-titre optionnel"
+      },
+      "cards": [
+        { "title": "Carte gauche", "body": ["Element 1", "Element 2", "Element 3"] },
+        { "title": "Carte droite", "body": ["Point 1", "Point 2"] }
+      ]
+    },
+    {
+      "layout": "card_4",
+      "placeholders": {
+        "{{TITLE}}": "Titre diapositive 4 cartes",
+        "{{SUBTITLE}}": "Sous-titre optionnel"
+      },
+      "cards": [
+        { "title": "Carte 1", "body": ["Detail"] },
+        { "title": "Carte 2", "body": ["Detail"] },
+        { "title": "Carte 3", "body": ["Detail"] },
+        { "title": "Carte 4", "body": ["Detail"] }
+      ]
+    },
+    {
+      "layout": "classic_bullets",
+      "placeholders": {
+        "{{TITLE}}": "Titre diapositive bullets",
+        "{{SUBTITLE}}": "Sous-titre",
+        "{{BODY}}": "Point principal 1\nPoint principal 2\nPoint principal 3\nSous-point 3a\nSous-point 3b"
+      }
+    }
+  ]
+}
