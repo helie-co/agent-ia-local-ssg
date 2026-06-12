@@ -15,23 +15,19 @@ function Resolve-ProjectPath {
 
 function Copy-Or-DownloadFile {
     param([string]$SourceRelativePath, [string]$DestinationPath)
-
     $destinationParent = Split-Path -Parent $DestinationPath
     if ($destinationParent -and -not (Test-Path -LiteralPath $destinationParent)) {
         New-Item -ItemType Directory -Path $destinationParent | Out-Null
     }
-
     $localSource = $null
     if ($PSScriptRoot) {
         $candidate = Join-Path $PSScriptRoot ($SourceRelativePath -replace '^ppt-v2/', '')
         if (Test-Path -LiteralPath $candidate) { $localSource = $candidate }
     }
-
     if ($localSource) {
         Copy-Item -LiteralPath $localSource -Destination $DestinationPath -Force
         return
     }
-
     $urlPath = $SourceRelativePath -replace '\\', '/'
     $url = "$RepositoryRawBase/$Ref/$urlPath"
     try { Invoke-WebRequest -Uri $url -OutFile $DestinationPath }
@@ -40,7 +36,6 @@ function Copy-Or-DownloadFile {
 
 function Test-InstalledFiles {
     param([string]$ProjectRoot, [array]$Files)
-
     $missing = @()
     foreach ($file in $Files) {
         $destination = Join-Path $ProjectRoot $file.Destination
@@ -53,10 +48,11 @@ $projectRoot = Resolve-ProjectPath $ProjectPath
 
 $files = @(
     @{ Source = "ppt-v2/.opencode/commands/ppt-v2.md"; Destination = ".opencode/commands/ppt-v2.md" },
-    @{ Source = "ppt-v2/.opencode/scripts/ppt-v2/New-CardTemplate.ps1"; Destination = ".opencode/scripts/ppt-v2/New-CardTemplate.ps1" },
-    @{ Source = "ppt-v2/.opencode/scripts/ppt-v2/Get-CardLayouts.ps1"; Destination = ".opencode/scripts/ppt-v2/Get-CardLayouts.ps1" },
-    @{ Source = "ppt-v2/.opencode/scripts/ppt-v2/Generate-CardPpt.ps1"; Destination = ".opencode/scripts/ppt-v2/Generate-CardPpt.ps1" },
+    @{ Source = "ppt-v2/.opencode/scripts/ppt-v2/New-ProfessionalTemplate.ps1"; Destination = ".opencode/scripts/ppt-v2/New-ProfessionalTemplate.ps1" },
+    @{ Source = "ppt-v2/.opencode/scripts/ppt-v2/Get-ProfessionalLayouts.ps1"; Destination = ".opencode/scripts/ppt-v2/Get-ProfessionalLayouts.ps1" },
+    @{ Source = "ppt-v2/.opencode/scripts/ppt-v2/Generate-ProfessionalPpt.ps1"; Destination = ".opencode/scripts/ppt-v2/Generate-ProfessionalPpt.ps1" },
     @{ Source = "ppt-v2/.opencode/scripts/ppt-v2/slides.example.json"; Destination = ".opencode/scripts/ppt-v2/slides.example.json" },
+    @{ Source = "ppt-v2/icons"; Destination = ".opencode/scripts/ppt-v2/icons" },
     @{ Source = "ppt-v2/README.md"; Destination = ".opencode/scripts/ppt-v2/README.md" }
 )
 
@@ -71,8 +67,8 @@ Test-InstalledFiles -ProjectRoot $projectRoot -Files $files
 
 Write-Output "Commande /ppt-v2 installee dans le projet: $projectRoot"
 Write-Output "Fichiers verifies: $($files.Count)"
-Write-Output "Cibles: .opencode/commands/ppt-v2.md et .opencode/scripts/ppt-v2/ (6 fichiers)"
+Write-Output "Cibles: .opencode/commands/ppt-v2.md et .opencode/scripts/ppt-v2/ (7 elements)"
 Write-Output "Redemarrez OpenCode Desktop depuis ce projet pour charger la commande."
 Write-Output ""
-Write-Output "Pour creer un template cards, lancez depuis OpenCode:"
+Write-Output "Pour creer un template professionnel (11 layouts Orange), lancez depuis OpenCode:"
 Write-Output "/ppt-v2 --create-template"

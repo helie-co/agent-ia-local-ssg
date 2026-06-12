@@ -1,54 +1,68 @@
 {
   "cover": {
-    "deckTitle": "Titre de votre presentation",
-    "deckSubtitle": "Sous-titre optionnel",
-    "date": "DATE",
-    "authors": "Votre Nom"
+    "deckTitle": "Presentation Orange - Transformation Digitale",
+    "deckSubtitle": "REX et enseignements d'une adoption reussie",
+    "date": "JUIN 2026",
+    "authors": "Equipe Transformation"
   },
   "slides": [
     {
-      "layout": "card_3",
-      "placeholders": {
-        "{{TITLE}}": "Titre diapositive 3 cartes",
-        "{{SUBTITLE}}": "Sous-titre optionnel"
-      },
-      "cards": [
-        { "title": "Carte 1", "body": ["Point 1", "Point 2", "Point 3"] },
-        { "title": "Carte 2", "body": ["Point A", "Point B"] },
-        { "title": "Carte 3", "body": ["Point X", "Point Y", "Point Z"] }
+      "type": "contexte",
+      "layout": "context_kpi_slide",
+      "placeholders": { "{{TITLE}}": "Contexte du projet", "{{SUBTITLE}}": "Chiffres cles" },
+      "kpis": [
+        { "value": "85%", "label": "Taux d'adoption" },
+        { "value": "3x", "label": "Gains productivite" },
+        { "value": "500+", "label": "Utilisateurs formes" },
+        { "value": "12", "label": "Mois de deploiement" }
       ]
     },
     {
-      "layout": "card_2",
-      "placeholders": {
-        "{{TITLE}}": "Titre diapositive 2 cartes",
-        "{{SUBTITLE}}": "Sous-titre optionnel"
-      },
-      "cards": [
-        { "title": "Carte gauche", "body": ["Element 1", "Element 2", "Element 3"] },
-        { "title": "Carte droite", "body": ["Point 1", "Point 2"] }
+      "type": "problematique",
+      "layout": "problem_slide",
+      "placeholders": { "{{TITLE}}": "La problematique initiale" },
+      "problem": "Les equipes utilisaient des outils non connectes, sans vision transverse ni gouvernance centralisee.",
+      "impacts": "Doublons de donnees\nDecisions ralenties\nFrustration utilisateur\nCouts d'infrastructure eleves"
+    },
+    {
+      "type": "question",
+      "layout": "question_answer_slide",
+      "placeholders": { "{{TITLE}}": "Question cle" },
+      "question": "Comment industrialiser la donnee tout en favorisant l'adoption ?",
+      "answer": "Une plateforme unique, des standards partages, un accompagnement continu",
+      "points": ["Approche progressive par pilotes", "Gouvernance transverse implantee tot", "Formation certifiante obligatoire"]
+    },
+    {
+      "type": "processus",
+      "layout": "process_slide",
+      "placeholders": { "{{TITLE}}": "Notre approche en 4 etapes" },
+      "steps": [
+        { "title": "Diagnostic", "description": "Audit des pratiques existantes et maturite data" },
+        { "title": "Pilote", "description": "Deploiement rapide sur un cas d'usage prioritaire" },
+        { "title": "Passage a l'echelle", "description": "Industrialisation et deploiement progressif" },
+        { "title": "Adoption continue", "description": "Suivi des indicateurs et boucle d'amelioration" }
       ]
     },
     {
-      "layout": "card_4",
-      "placeholders": {
-        "{{TITLE}}": "Titre diapositive 4 cartes",
-        "{{SUBTITLE}}": "Sous-titre optionnel"
-      },
-      "cards": [
-        { "title": "Carte 1", "body": ["Detail"] },
-        { "title": "Carte 2", "body": ["Detail"] },
-        { "title": "Carte 3", "body": ["Detail"] },
-        { "title": "Carte 4", "body": ["Detail"] }
-      ]
+      "type": "roles",
+      "layout": "role_focus_slide",
+      "placeholders": { "{{TITLE}}": "Les roles cles" },
+      "roleName": "Data Product Owner",
+      "roleTitle": "Garant de la feuille de route data",
+      "responsibilities": ["Definir la vision produit", "Prioriser les cas d'usage", "Coordonner les equipes", "Mesurer l'impact metier"]
     },
     {
-      "layout": "classic_bullets",
-      "placeholders": {
-        "{{TITLE}}": "Titre diapositive bullets",
-        "{{SUBTITLE}}": "Sous-titre",
-        "{{BODY}}": "Point principal 1\nPoint principal 2\nPoint principal 3\nSous-point 3a\nSous-point 3b"
-      }
+      "type": "enseignements",
+      "layout": "lessons_slide",
+      "placeholders": { "{{TITLE}}": "Enseignements cles" },
+      "lessons": ["Commencer petit, penser grand : le pilote est indispensable", "La gouvernance ne se decrete pas, elle se co-construit", "Former ne suffit pas : il faut accompagner le changement", "Mesurer pour progresser : les KPIs sont votre boussole"]
+    },
+    {
+      "type": "bilan",
+      "layout": "conclusion_slide",
+      "placeholders": { "{{TITLE}}": "Bilan et perspectives" },
+      "mainMessage": "La transformation data est un voyage, pas une destination",
+      "takeaways": ["Les investissements data sont rentables a 18 mois", "L'adoption repose sur la confiance des equipes", "La prochaine etape : l'IA au service des metiers"]
     }
   ]
 }

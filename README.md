@@ -6,7 +6,7 @@ Commandes OpenCode installables localement dans un projet.
 
 - [`/ppt-v1`](./ppt-v1/README.md) : prepare puis genere une presentation PowerPoint a partir de texte, Markdown, image ou PPTX source.
 - [`/rec`](./rec/README.md) : enregistrement ecran/audio avec transcription live (whisper.cpp), fusion des chunks, et gestion des sessions.
-- [`/ppt-v2`](./ppt-v2/README.md) : prepare puis genere une presentation PowerPoint avec des cartes visuelles (blocs autonomes en grille).
+- [`/ppt-v2`](./ppt-v2/README.md) : genere une presentation PowerPoint professionnelle avec 11 layouts Orange / conseil, icones SVG, auto-conclusion et controle qualite.
 
 ## Installation d'une commande depuis OpenCode Desktop
 

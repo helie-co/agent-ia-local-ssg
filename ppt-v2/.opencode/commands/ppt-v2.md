@@ -1,140 +1,109 @@
 ---
-description: Prepare puis genere une presentation PowerPoint avec des cartes visuelles (blocs autonomes en grille).
+description: Genere une presentation PowerPoint professionnelle avec 11 layouts Orange / conseil, icones SVG, auto-conclusion et controle qualite.
 agent: build
 ---
 
 Tu aides a preparer puis generer une presentation PowerPoint avec des cartes visuelles, en respectant strictement un template `.pptx`.
 
 Travaille depuis la racine du projet et utilise :
-
-- Le dossier courant du projet est la racine de travail.
-- Le dossier `ppt-v2/` sert aux operations et fichiers intermediaires Markdown/JSON.
-- `.opencode/scripts/ppt-v2/New-CardTemplate.ps1` pour creer un template cards.
-- `.opencode/scripts/ppt-v2/Get-CardLayouts.ps1` pour generer le catalogue de layouts depuis le template.
-- `.opencode/scripts/ppt-v2/Generate-CardPpt.ps1` pour generer le PowerPoint final avec cartes.
+- Le dossier `ppt-v2/` pour les fichiers intermediaires Markdown/JSON.
+- `.opencode/scripts/ppt-v2/New-ProfessionalTemplate.ps1` pour creer un template.
+- `.opencode/scripts/ppt-v2/Get-ProfessionalLayouts.ps1` pour generer le catalogue de layouts.
+- `.opencode/scripts/ppt-v2/Generate-ProfessionalPpt.ps1` pour generer le PowerPoint final.
 
 Demande utilisateur :
-
 ```text
 $ARGUMENTS
 ```
 
 Modes supportes :
-
 - Aide : `/ppt-v2 --help`
-- Installation dependances : `/ppt-v2 --install`
-- Creer un template cards : `/ppt-v2 --create-template`
-- Texte libre : `/ppt-v2 Genere 5 slides avec cartes sur les piliers de la data`
+- Creer template : `/ppt-v2 --create-template`
+- Texte libre : `/ppt-v2 Genere 5 slides sur la data`
 - Source Markdown : `/ppt-v2 @source.md`
 
-Mode aide :
+Mode aide : lit et affiche `.opencode/scripts/ppt-v2/README.md`.
 
-- Si la demande est exactement `/ppt-v2 --help`, ne lance pas le workflow.
-- Lis et affiche le contenu complet de `.opencode/scripts/ppt-v2/README.md`.
-
-Mode creation du template :
-
-- Si la demande est `/ppt-v2 --create-template`, ne lance pas le workflow.
-- Execute le bloc PowerShell ci-dessous.
-
-Commande pour `/ppt-v2 --create-template` :
-
+Mode `--create-template` :
 ```powershell
 $ErrorActionPreference = 'Stop'
 $nom = Read-Host "Nom du template (sans .template.pptx)"
 $templateDir = Join-Path (Get-Location) "ppt-v2"
 New-Item -ItemType Directory -Force -Path $templateDir | Out-Null
 $templatePath = Join-Path $templateDir "$nom.template.pptx"
-powershell -NoProfile -ExecutionPolicy Bypass -File ".\.opencode\scripts\ppt-v2\New-CardTemplate.ps1" -OutputPath $templatePath
-Write-Output "Template cree: $templatePath"
-Write-Output "Tu peux maintenant l ouvrir dans PowerPoint pour personnaliser les couleurs et polices."
+powershell -NoProfile -ExecutionPolicy Bypass -File ".\.opencode\scripts\ppt-v2\New-ProfessionalTemplate.ps1" -OutputPath $templatePath
+Write-Output "Template cree: $templatePath (11 layouts Orange)"
+Write-Output "Ouvre dans PowerPoint pour personnaliser couleurs, polices et ajouter des icones."
 ```
 
 Regles strictes :
+- Affiche chaque etape en gras : `**Étape X/9 - Nom**`.
+- 9 etapes : 1 Analyse, 2 Type de chaque slide, 3 Template, 4 Markdown, 5 Validation, 6 JSON, 7 Generation PPT, 8 Controle qualite, 9 Finalisation.
+- Au premier tour, arrete a l'etape 5 apres validation du Markdown.
+- Genere le catalogue layouts avec `Get-ProfessionalLayouts.ps1`.
+- Cherche `*.template.pptx` dans `ppt-v2/` et `template-ppt/`.
+- Pour chaque slide, identifie le type : contexte, problematique, question, reponse, processus, roles, enseignements, chiffres cles, bilan, conclusion.
+- Applique la reduction automatique du texte (max 12 mots/carte, 4 lignes/bloc).
+- Ajoute systematiquement un message de conclusion (phrase courte en bas de slide).
+- Qualite : verifie texte trop long, >5 blocs, conclusion absente, coherence.
 
-- Affiche toujours l'etape courante en gras avec le format `**Étape X/8 - Nom de l'étape**`.
-- Utilise toujours ces 8 etapes :
-  1. `**Étape 1/8 - Analyse de la demande**`
-  2. `**Étape 2/8 - Recherche et choix du template**`
-  3. `**Étape 3/8 - Préparation du Markdown**`
-  4. `**Étape 4/8 - Validation utilisateur**`
-  5. `**Étape 5/8 - Génération du JSON**`
-  6. `**Étape 6/8 - Génération PowerPoint**`
-  7. `**Étape 7/8 - Contrôle visuel et corrections**`
-  8. `**Étape 8/8 - Finalisation et ouverture optionnelle**`
-- Au premier tour, arrete-toi toujours a l'etape 4 apres avoir demande validation du Markdown.
-- Genere le catalogue de layouts depuis le template avec `Get-CardLayouts.ps1` avant la generation PowerPoint.
-- Si aucun template n'est fourni, cherche les fichiers `*.template.pptx` dans `ppt-v2/` et `template-ppt/`.
-
-Format attendu pour `ppt-v2/deck.generated.md` :
-
+Formats Markdown :
 ```markdown
-# Titre de la presentation
-
-Template: chemin/vers/template.template.pptx
+# Titre presentation
+Template: ppt-v2/MonTemplate.template.pptx
 Source: texte libre
 
-## Slide 1 - Cover
-Layout: cover
+## Slide 1 - Contexte
+Type: contexte
+Layout: context_kpi_slide
+Titre: Contexte du projet
+KPI 1: 85% | Taux adoption
+KPI 2: 500+ | Utilisateurs
 
-Titre:
-Sous-titre:
-Date:
-Auteurs:
+## Slide 2 - Question cle
+Type: question
+Layout: question_answer_slide
+Titre: Question cle
+Question: Comment industrialiser ?
+Reponse: Une plateforme unique
+Point 1: Approche progressive
+Point 2: Gouvernance transverse
 
-## Slide 2 - Trois piliers
-Layout: card_3
+## Slide 3 - Processus
+Type: processus
+Layout: process_slide
+Titre: Notre approche
+Etape 1: Diagnostic | Audit des pratiques
+Etape 2: Pilote | Deploiement rapide
 
-Titre: Les piliers de la data
-Sous-titre: Nos axes stratégiques
-
-Carte 1:
-Titre: Gouvernance
-- Cadre reglementaire
-- Qualite des donnees
-
-Carte 2:
-Titre: Infrastructure
-- Plateforme cloud
-- Securite
-
-Carte 3:
-Titre: Culture
-- Formation
-- Accompagnement
+## Slide 4 - Enseignements
+Type: enseignements
+Layout: lessons_slide
+Titre: Enseignements cles
+Lecon 1: Commencer petit, penser grand
+Lecon 2: La gouvernance se co-construit
 ```
 
-Format JSON :
-
+Format JSON (structure complete dans slides.example.json) :
 ```json
 {
-  "cover": {
-    "deckTitle": "...",
-    "deckSubtitle": "...",
-    "date": "...",
-    "authors": "..."
-  },
+  "cover": { "deckTitle": "...", "deckSubtitle": "...", "date": "...", "authors": "..." },
   "slides": [
-    {
-      "layout": "card_3",
-      "placeholders": {
-        "{{TITLE}}": "Les piliers",
-        "{{SUBTITLE}}": "Nos axes"
-      },
-      "cards": [
-        { "title": "Gouvernance", "body": ["Cadre", "Qualite"] },
-        { "title": "Infrastructure", "body": ["Cloud", "Securite"] },
-        { "title": "Culture", "body": ["Formation", "Accompagnement"] }
-      ]
-    }
+    { "type": "contexte", "layout": "context_kpi_slide",
+      "placeholders": { "{{TITLE}}": "...", "{{SUBTITLE}}": "..." },
+      "kpis": [{ "value": "85%", "label": "Taux adoption" }] },
+    { "type": "enseignements", "layout": "lessons_slide",
+      "lessons": ["Premier enseignement", "Second enseignement"] },
+    { "type": "conclusion", "layout": "conclusion_slide",
+      "mainMessage": "La transformation est un voyage",
+      "takeaways": ["Point cle 1", "Point cle 2", "Point cle 3"] }
   ]
 }
 ```
 
 Commande normale :
-
 ```powershell
-$script = Join-Path (Get-Location) '.opencode\scripts\ppt-v2\Generate-CardPpt.ps1'
+$script = Join-Path (Get-Location) '.opencode\scripts\ppt-v2\Generate-ProfessionalPpt.ps1'
 $rawArgs = '$ARGUMENTS'
 $output = & powershell -NoProfile -ExecutionPolicy Bypass -Command "& '$script' -RawArgs '$rawArgs'"
 @($output) -join "`r`n"
