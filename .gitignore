@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.pyo
+/Presentation_*.pptx
+/ppt-v2/.opencode/scripts/Presentation_*.pptx
+/template-ppt/
