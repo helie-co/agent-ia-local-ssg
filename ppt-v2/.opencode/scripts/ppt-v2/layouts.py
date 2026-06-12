@@ -1,0 +1,698 @@
+from pptx.util import Inches, Pt, Emu
+from pptx.dml.color import RGBColor
+from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+from pptx.oxml.ns import qn
+import theme
+import card
+import footer
+import conclusion as conc
+
+
+def _add_bg(slide, color_rgb):
+    bg = slide.shapes.add_shape(
+        1, 0, 0, theme.SLIDE_W, theme.SLIDE_H
+    )
+    bg.fill.solid()
+    bg.fill.fore_color.rgb = color_rgb
+    bg.line.fill.background()
+    bg.shadow.inherit = False
+
+
+def _add_title(slide, text, top=theme.TITLE_TOP, size=Pt(30)):
+    box = slide.shapes.add_textbox(
+        theme.MARGIN_L, top, theme.CONTENT_W, theme.TITLE_H
+    )
+    tf = box.text_frame
+    tf.word_wrap = True
+    p = tf.paragraphs[0]
+    p.text = text
+    p.font.size = size
+    p.font.bold = True
+    p.font.color.rgb = theme.DARK_RGB
+    p.font.name = theme.FONT_FAMILY
+    return box
+
+
+def _add_subtitle(slide, text, top=theme.SUBTITLE_TOP):
+    box = slide.shapes.add_textbox(
+        theme.MARGIN_L, top, theme.CONTENT_W, theme.SUBTITLE_H
+    )
+    tf = box.text_frame
+    tf.word_wrap = True
+    p = tf.paragraphs[0]
+    p.text = text
+    p.font.size = Pt(17)
+    p.font.color.rgb = theme.MEDIUM_RGB
+    p.font.name = theme.FONT_FAMILY
+    return box
+
+
+def _add_kpi_big(slide, value, label, left, top, width):
+    box = slide.shapes.add_textbox(left, top, width, Inches(1.0))
+    tf = box.text_frame
+    tf.word_wrap = True
+    tf.margin_left = Pt(0)
+    tf.margin_top = Pt(0)
+
+    p = tf.paragraphs[0]
+    p.alignment = PP_ALIGN.CENTER
+    run = p.add_run()
+    run.text = value
+    run.font.size = Pt(40)
+    run.font.bold = True
+    run.font.color.rgb = theme.BANNER_ORANGE
+    run.font.name = theme.FONT_FAMILY
+
+    p2 = tf.add_paragraph()
+    p2.alignment = PP_ALIGN.CENTER
+    p2.space_before = Pt(2)
+    run2 = p2.add_run()
+    run2.text = label
+    run2.font.size = Pt(13)
+    run2.font.color.rgb = theme.MEDIUM_RGB
+    run2.font.name = theme.FONT_FAMILY
+
+
+def _add_centered_text(slide, text, top, size=Pt(18), color=theme.DARK_RGB,
+                       bold=False, max_width=None):
+    w = max_width or theme.CONTENT_W
+    box = slide.shapes.add_textbox(theme.MARGIN_L, top, w, Inches(1.5))
+    tf = box.text_frame
+    tf.word_wrap = True
+
+    p = tf.paragraphs[0]
+    p.alignment = PP_ALIGN.LEFT
+    p.text = text
+    p.font.size = size
+    p.font.color.rgb = color
+    p.font.bold = bold
+    p.font.name = theme.FONT_FAMILY
+    return box
+
+
+def _add_card_grid(slide, cards, cols=3, card_w=None, card_h=theme.CARD_H):
+    n = len(cards)
+    if n == 0:
+        return
+    cols = min(cols, n)
+    if card_w is None:
+        total_gap = theme.CARD_GAP * (cols - 1)
+        card_w = (theme.CONTENT_W - total_gap) // cols
+
+    rows = (n + cols - 1) // cols
+    content_top = theme.CARD_Y
+    card_h_adj = min(card_h, (Inches(5.0) - (rows - 1) * Inches(0.3)) / rows)
+
+    for i, c in enumerate(cards):
+        col = i % cols
+        row = i // cols
+        left = theme.MARGIN_L + col * (card_w + theme.CARD_GAP)
+        top = content_top + row * (card_h_adj + Inches(0.3))
+        card.add_card(
+            slide, left, top, card_w, card_h_adj,
+            c.get("icon"), c.get("title", ""), c.get("text", ""),
+            icon_size=Inches(0.35)
+        )
+
+
+def _add_step_line(slide, steps, top=Inches(2.5)):
+    n = len(steps)
+    if n == 0:
+        return
+    step_w = theme.CONTENT_W // n
+    line_y = top + Inches(0.15)
+    slide.shapes.add_shape(
+        1, theme.MARGIN_L, line_y, theme.CONTENT_W, Pt(3)
+    ).fill.solid()
+    slide.shapes[-1].fill.fore_color.rgb = theme.BORDER_RGB
+    slide.shapes[-1].line.fill.background()
+
+    for i, s in enumerate(steps):
+        cx = theme.MARGIN_L + step_w * i + step_w // 2
+        dot = slide.shapes.add_shape(
+            9, cx - Inches(0.12), line_y - Inches(0.08),
+            Inches(0.24), Inches(0.24)
+        )
+        dot.fill.solid()
+        dot.fill.fore_color.rgb = theme.BANNER_ORANGE if i == 0 else theme.BORDER_RGB
+        dot.line.fill.background()
+
+        num_box = slide.shapes.add_textbox(
+            cx - Inches(0.12), line_y - Inches(0.08),
+            Inches(0.24), Inches(0.24)
+        )
+        ntf = num_box.text_frame
+        np = ntf.paragraphs[0]
+        np.alignment = PP_ALIGN.CENTER
+        np.text = str(i + 1)
+        np.font.size = Pt(10)
+        np.font.bold = True
+        np.font.color.rgb = theme.WHITE_RGB if i == 0 else theme.DARK_RGB
+        np.font.name = theme.FONT_FAMILY
+
+        tbox = slide.shapes.add_textbox(
+            theme.MARGIN_L + step_w * i + Inches(0.1),
+            top + Inches(0.45), step_w - Inches(0.2), Inches(0.9)
+        )
+        ttf = tbox.text_frame
+        ttf.word_wrap = True
+
+        tp = ttf.paragraphs[0]
+        tp.text = s.get("title", "")
+        tp.font.size = Pt(14)
+        tp.font.bold = True
+        tp.font.color.rgb = theme.DARK_RGB
+        tp.font.name = theme.FONT_FAMILY
+
+        if s.get("text"):
+            dp = ttf.add_paragraph()
+            dp.text = s["text"]
+            dp.font.size = Pt(11)
+            dp.font.color.rgb = theme.MEDIUM_RGB
+            dp.font.name = theme.FONT_FAMILY
+            dp.space_before = Pt(4)
+
+
+def _add_cycle(slide, phases, center_x=Inches(6.666), center_y=Inches(3.5),
+               radius=Inches(1.8)):
+    n = len(phases)
+    if n == 0:
+        return
+
+    cx = int(center_x)
+    cy = int(center_y)
+
+    for i, p in enumerate(phases):
+        angle = 2 * 3.14159 * i / n - 3.14159 / 2
+        px = int(cx + radius * Emu(914400) * (angle.__class__(3.14159) and 0 or 1))
+        import math
+        px = int(cx + radius * math.cos(angle))
+        py = int(cy + radius * math.sin(angle))
+
+        bx = px - Inches(0.8)
+        by = py - Inches(0.4)
+        bw = Inches(1.6)
+        bh = Inches(0.8)
+
+        phase_box = slide.shapes.add_shape(
+            1, bx, by, bw, bh
+        )
+        phase_box.fill.solid()
+        phase_box.fill.fore_color.rgb = theme.LIGHT_BG_RGB
+        phase_box.line.color.rgb = theme.BORDER_RGB
+        phase_box.line.width = Pt(0.5)
+
+        tbox = slide.shapes.add_textbox(bx, by, bw, bh)
+        ttf = tbox.text_frame
+        ttf.word_wrap = True
+        ttf.margin_left = Pt(4)
+        ttf.margin_right = Pt(4)
+        ttf.margin_top = Pt(4)
+
+        tp = ttf.paragraphs[0]
+        tp.alignment = PP_ALIGN.CENTER
+        tp.text = p.get("title", "")
+        tp.font.size = Pt(11)
+        tp.font.bold = True
+        tp.font.color.rgb = theme.DARK_RGB
+        tp.font.name = theme.FONT_FAMILY
+
+        if p.get("text"):
+            dp = ttf.add_paragraph()
+            dp.alignment = PP_ALIGN.CENTER
+            dp.text = p["text"]
+            dp.font.size = Pt(9)
+            dp.font.color.rgb = theme.MEDIUM_RGB
+            dp.font.name = theme.FONT_FAMILY
+
+    center = slide.shapes.add_shape(
+        9, cx - Inches(0.6), cy - Inches(0.6),
+        Inches(1.2), Inches(1.2)
+    )
+    center.fill.solid()
+    center.fill.fore_color.rgb = theme.BANNER_ORANGE
+    center.line.fill.background()
+
+    ctbox = slide.shapes.add_textbox(
+        cx - Inches(0.5), cy - Inches(0.3),
+        Inches(1.0), Inches(0.6)
+    )
+    ctf = ctbox.text_frame
+    ctf.word_wrap = True
+    cp = ctf.paragraphs[0]
+    cp.alignment = PP_ALIGN.CENTER
+    cp.text = "Utilisateur"
+    cp.font.size = Pt(11)
+    cp.font.bold = True
+    cp.font.color.rgb = theme.WHITE_RGB
+    cp.font.name = theme.FONT_FAMILY
+
+
+def _add_split(slide, left_text, right_text, left_title="", right_title=""):
+    mid = Inches(0.06)
+    half_w = (theme.CONTENT_W - mid) // 2
+    y = Inches(2.1)
+    h = Inches(3.8)
+
+    left_box = slide.shapes.add_shape(
+        1, theme.MARGIN_L, y, half_w, h
+    )
+    left_box.fill.solid()
+    left_box.fill.fore_color.rgb = theme.LIGHT_BG_RGB
+    left_box.line.color.rgb = theme.BORDER_RGB
+    left_box.line.width = Pt(0.5)
+
+    if left_title:
+        tbox = slide.shapes.add_textbox(
+            theme.MARGIN_L + Inches(0.3), y + Inches(0.15),
+            half_w - Inches(0.6), Inches(0.4)
+        )
+        ttf = tbox.text_frame
+        tp = ttf.paragraphs[0]
+        tp.text = left_title
+        tp.font.size = Pt(16)
+        tp.font.bold = True
+        tp.font.color.rgb = theme.BANNER_ORANGE
+        tp.font.name = theme.FONT_FAMILY
+
+    bbox = slide.shapes.add_textbox(
+        theme.MARGIN_L + Inches(0.3), y + Inches(0.6),
+        half_w - Inches(0.6), h - Inches(0.8)
+    )
+    btf = bbox.text_frame
+    btf.word_wrap = True
+    bp = btf.paragraphs[0]
+    bp.text = left_text
+    bp.font.size = Pt(13)
+    bp.font.color.rgb = theme.DARK_RGB
+    bp.font.name = theme.FONT_FAMILY
+
+    arrow = slide.shapes.add_shape(
+        1, theme.MARGIN_L + half_w + Inches(0.02),
+        y + h // 2 - Inches(0.3), Inches(0.02), Inches(0.6)
+    )
+    arrow.fill.solid()
+    arrow.fill.fore_color.rgb = theme.BANNER_ORANGE
+    arrow.line.fill.background()
+
+    right_x = theme.MARGIN_L + half_w + mid
+    right_box = slide.shapes.add_shape(
+        1, right_x, y, half_w, h
+    )
+    right_box.fill.solid()
+    right_box.fill.fore_color.rgb = theme.LIGHT_BG_RGB
+    right_box.line.color.rgb = theme.BORDER_RGB
+    right_box.line.width = Pt(0.5)
+
+    if right_title:
+        tbox2 = slide.shapes.add_textbox(
+            right_x + Inches(0.3), y + Inches(0.15),
+            half_w - Inches(0.6), Inches(0.4)
+        )
+        ttf2 = tbox2.text_frame
+        tp2 = ttf2.paragraphs[0]
+        tp2.text = right_title
+        tp2.font.size = Pt(16)
+        tp2.font.bold = True
+        tp2.font.color.rgb = theme.BANNER_ORANGE
+        tp2.font.name = theme.FONT_FAMILY
+
+    bbox2 = slide.shapes.add_textbox(
+        right_x + Inches(0.3), y + Inches(0.6),
+        half_w - Inches(0.6), h - Inches(0.8)
+    )
+    btf2 = bbox2.text_frame
+    btf2.word_wrap = True
+    bp2 = btf2.paragraphs[0]
+    bp2.text = right_text
+    bp2.font.size = Pt(13)
+    bp2.font.color.rgb = theme.DARK_RGB
+    bp2.font.name = theme.FONT_FAMILY
+
+
+def build_cover(slide, deck):
+    _add_bg(slide, theme.WHITE_RGB)
+
+    band = slide.shapes.add_shape(
+        1, Inches(0.4), Inches(0), Inches(0.12), theme.SLIDE_H
+    )
+    band.fill.solid()
+    band.fill.fore_color.rgb = theme.BANNER_ORANGE
+    band.line.fill.background()
+
+    title = deck.get("deckTitle", "Presentation")
+    box = slide.shapes.add_textbox(
+        Inches(1.5), Inches(2.0), Inches(10.0), Inches(1.5)
+    )
+    tf = box.text_frame
+    tf.word_wrap = True
+    p = tf.paragraphs[0]
+    p.text = title
+    p.font.size = Pt(38)
+    p.font.bold = True
+    p.font.color.rgb = theme.DARK_RGB
+    p.font.name = theme.FONT_FAMILY
+
+    if deck.get("deckSubtitle"):
+        sbox = slide.shapes.add_textbox(
+            Inches(1.5), Inches(3.5), Inches(10.0), Inches(0.6)
+        )
+        stf = sbox.text_frame
+        sp = stf.paragraphs[0]
+        sp.text = deck["deckSubtitle"]
+        sp.font.size = Pt(19)
+        sp.font.color.rgb = theme.MEDIUM_RGB
+        sp.font.name = theme.FONT_FAMILY
+
+    date_auth = []
+    if deck.get("date"):
+        date_auth.append(deck["date"])
+    if deck.get("authors"):
+        date_auth.append(deck["authors"])
+    if date_auth:
+        dbox = slide.shapes.add_textbox(
+            Inches(1.5), Inches(4.3), Inches(10.0), Inches(0.5)
+        )
+        dtf = dbox.text_frame
+        dp = dtf.paragraphs[0]
+        dp.text = " | ".join(date_auth)
+        dp.font.size = Pt(13)
+        dp.font.color.rgb = theme.MEDIUM_RGB
+        dp.font.name = theme.FONT_FAMILY
+
+    footer.add_footer(slide)
+
+    return {"cover": True}
+
+
+def build_message_only(slide, slide_data):
+    _add_bg(slide, theme.WHITE_RGB)
+
+    if slide_data.get("title"):
+        _add_title(slide, slide_data["title"])
+
+    if slide_data.get("subtitle"):
+        _add_subtitle(slide, slide_data["subtitle"])
+
+    main_msg = slide_data.get("mainMessage", slide_data.get("message", ""))
+    if main_msg:
+        box = slide.shapes.add_textbox(
+            theme.MARGIN_L, Inches(2.5), theme.CONTENT_W, Inches(2.5)
+        )
+        tf = box.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = main_msg
+        p.font.size = Pt(24)
+        p.font.color.rgb = theme.DARK_RGB
+        p.font.name = theme.FONT_FAMILY
+
+    footer.add_footer(slide)
+    if slide_data.get("conclusion"):
+        conc.add_conclusion_banner(slide, slide_data["conclusion"])
+
+
+def build_three_cards(slide, slide_data):
+    _add_bg(slide, theme.WHITE_RGB)
+    if slide_data.get("title"):
+        _add_title(slide, slide_data["title"])
+    if slide_data.get("subtitle"):
+        _add_subtitle(slide, slide_data["subtitle"])
+
+    cards = slide_data.get("cards", [])
+    _add_card_grid(slide, cards[:3], cols=3)
+
+    footer.add_footer(slide)
+    if slide_data.get("conclusion"):
+        conc.add_conclusion_banner(slide, slide_data["conclusion"])
+
+
+def build_four_cards(slide, slide_data):
+    _add_bg(slide, theme.WHITE_RGB)
+    if slide_data.get("title"):
+        _add_title(slide, slide_data["title"])
+    if slide_data.get("subtitle"):
+        _add_subtitle(slide, slide_data["subtitle"])
+
+    cards = slide_data.get("cards", [])
+    _add_card_grid(slide, cards[:4], cols=2)
+
+    footer.add_footer(slide)
+    if slide_data.get("conclusion"):
+        conc.add_conclusion_banner(slide, slide_data["conclusion"])
+
+
+def build_problem_solution(slide, slide_data):
+    _add_bg(slide, theme.WHITE_RGB)
+    if slide_data.get("title"):
+        _add_title(slide, slide_data["title"])
+
+    _add_split(
+        slide,
+        slide_data.get("problem", ""),
+        slide_data.get("solution", ""),
+        left_title="Problème",
+        right_title="Solution"
+    )
+
+    footer.add_footer(slide)
+    if slide_data.get("conclusion"):
+        conc.add_conclusion_banner(slide, slide_data["conclusion"])
+
+
+def build_process(slide, slide_data):
+    _add_bg(slide, theme.WHITE_RGB)
+    if slide_data.get("title"):
+        _add_title(slide, slide_data["title"])
+
+    steps = slide_data.get("steps", slide_data.get("cards", []))
+    _add_step_line(slide, steps[:6])
+
+    footer.add_footer(slide)
+    if slide_data.get("conclusion"):
+        conc.add_conclusion_banner(slide, slide_data["conclusion"])
+
+
+def build_kpi(slide, slide_data):
+    _add_bg(slide, theme.WHITE_RGB)
+    if slide_data.get("title"):
+        _add_title(slide, slide_data["title"])
+    if slide_data.get("subtitle"):
+        _add_subtitle(slide, slide_data["subtitle"])
+
+    kpis = slide_data.get("kpis", [])
+    n = min(len(kpis), 4)
+    if n > 0:
+        kpi_w = theme.CONTENT_W // n
+        y = Inches(2.5)
+        for i, k in enumerate(kpis):
+            _add_kpi_big(
+                slide, k.get("value", ""), k.get("label", ""),
+                theme.MARGIN_L + kpi_w * i, y, kpi_w
+            )
+
+    footer.add_footer(slide)
+    if slide_data.get("conclusion"):
+        conc.add_conclusion_banner(slide, slide_data["conclusion"])
+
+
+def build_lessons(slide, slide_data):
+    _add_bg(slide, theme.WHITE_RGB)
+    if slide_data.get("title"):
+        _add_title(slide, slide_data["title"])
+
+    lessons = slide_data.get("lessons", slide_data.get("cards", []))
+    y = Inches(2.2)
+    lesson_w = Inches(10.8)
+    lesson_h = Inches(0.65)
+    gap = Inches(0.15)
+
+    for i, l in enumerate(lessons[:5]):
+        top = y + i * (lesson_h + gap)
+        text = l if isinstance(l, str) else l.get("text", l.get("title", ""))
+        num = l.get("number", i + 1) if not isinstance(l, str) else i + 1
+
+        num_bg = slide.shapes.add_shape(
+            9, theme.MARGIN_L, top + Inches(0.1),
+            Inches(0.35), Inches(0.35)
+        )
+        num_bg.fill.solid()
+        num_bg.fill.fore_color.rgb = theme.BANNER_ORANGE
+        num_bg.line.fill.background()
+
+        nbox = slide.shapes.add_textbox(
+            theme.MARGIN_L, top + Inches(0.1),
+            Inches(0.35), Inches(0.35)
+        )
+        ntf = nbox.text_frame
+        np = ntf.paragraphs[0]
+        np.alignment = PP_ALIGN.CENTER
+        np.text = str(num)
+        np.font.size = Pt(12)
+        np.font.bold = True
+        np.font.color.rgb = theme.WHITE_RGB
+        np.font.name = theme.FONT_FAMILY
+        ntf.margin_left = Pt(0)
+        ntf.margin_top = Pt(2)
+
+        tbox = slide.shapes.add_textbox(
+            theme.MARGIN_L + Inches(0.5), top,
+            lesson_w - Inches(0.5), lesson_h
+        )
+        ttf = tbox.text_frame
+        ttf.word_wrap = True
+        ttf.margin_left = Pt(0)
+        ttf.margin_top = Pt(0)
+        tp = ttf.paragraphs[0]
+        tp.text = text
+        tp.font.size = Pt(14)
+        tp.font.color.rgb = theme.DARK_RGB
+        tp.font.name = theme.FONT_FAMILY
+
+        if i < len(lessons) - 1:
+            sep = slide.shapes.add_shape(
+                1, theme.MARGIN_L + Inches(0.5),
+                int(top + lesson_h), lesson_w - Inches(0.5), Pt(0.5)
+            )
+            sep.fill.solid()
+            sep.fill.fore_color.rgb = theme.BORDER_RGB
+            sep.line.fill.background()
+
+    footer.add_footer(slide)
+    if slide_data.get("conclusion"):
+        conc.add_conclusion_banner(slide, slide_data["conclusion"])
+
+
+def build_role_focus(slide, slide_data):
+    _add_bg(slide, theme.WHITE_RGB)
+    if slide_data.get("title"):
+        _add_title(slide, slide_data["title"])
+
+    role_name = slide_data.get("roleName", "Role")
+    role_title = slide_data.get("roleTitle", "")
+    responsibilities = slide_data.get("responsibilities", slide_data.get("cards", []))
+
+    cx = int(Inches(6.666))
+    cy = int(Inches(3.0))
+
+    center = slide.shapes.add_shape(
+        9, cx - Inches(0.5), cy - Inches(0.5),
+        Inches(1.0), Inches(1.0)
+    )
+    center.fill.solid()
+    center.fill.fore_color.rgb = theme.BANNER_ORANGE
+    center.line.fill.background()
+
+    cbox = slide.shapes.add_textbox(
+        cx - Inches(0.45), cy - Inches(0.35),
+        Inches(0.9), Inches(0.7)
+    )
+    ctf = cbox.text_frame
+    ctf.word_wrap = True
+    cp = ctf.paragraphs[0]
+    cp.alignment = PP_ALIGN.CENTER
+    cp.text = role_name
+    cp.font.size = Pt(12)
+    cp.font.bold = True
+    cp.font.color.rgb = theme.WHITE_RGB
+    cp.font.name = theme.FONT_FAMILY
+
+    if role_title:
+        sp = ctf.add_paragraph()
+        sp.alignment = PP_ALIGN.CENTER
+        sp.text = role_title
+        sp.font.size = Pt(9)
+        sp.font.color.rgb = theme.LIGHT_BG_RGB
+        sp.font.name = theme.FONT_FAMILY
+
+    n = min(len(responsibilities), 4)
+    for i, r in enumerate(responsibilities[:n]):
+        angle = 2 * 3.14159 * i / n - 3.14159 / 2
+        import math
+        px = int(cx + Inches(1.8) * math.cos(angle))
+        py = int(cy + Inches(1.3) * math.sin(angle))
+
+        text = r if isinstance(r, str) else r.get("text", r.get("title", ""))
+        rbox = slide.shapes.add_textbox(
+            px - Inches(0.7), py - Inches(0.15),
+            Inches(1.4), Inches(0.5)
+        )
+        rtf = rbox.text_frame
+        rtf.word_wrap = True
+        rp = rtf.paragraphs[0]
+        rp.alignment = PP_ALIGN.CENTER
+        rp.text = text
+        rp.font.size = Pt(13)
+        rp.font.color.rgb = theme.DARK_RGB
+        rp.font.name = theme.FONT_FAMILY
+
+    footer.add_footer(slide)
+    if slide_data.get("conclusion"):
+        conc.add_conclusion_banner(slide, slide_data["conclusion"])
+
+
+def build_adoption_loop(slide, slide_data):
+    _add_bg(slide, theme.WHITE_RGB)
+    if slide_data.get("title"):
+        _add_title(slide, slide_data["title"])
+
+    phases = slide_data.get("phases", slide_data.get("cards", []))
+    _add_cycle(slide, phases[:4])
+
+    footer.add_footer(slide)
+    if slide_data.get("conclusion"):
+        conc.add_conclusion_banner(slide, slide_data["conclusion"])
+
+
+def build_closing(slide, slide_data):
+    _add_bg(slide, theme.WHITE_RGB)
+
+    main_msg = slide_data.get("mainMessage", slide_data.get("message", ""))
+    if main_msg:
+        box = slide.shapes.add_textbox(
+            theme.MARGIN_L, Inches(2.0), theme.CONTENT_W, Inches(1.5)
+        )
+        tf = box.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = main_msg
+        p.font.size = Pt(30)
+        p.font.bold = True
+        p.font.color.rgb = theme.DARK_RGB
+        p.font.name = theme.FONT_FAMILY
+
+    takeaways = slide_data.get("takeaways", slide_data.get("cards", []))
+    y = Inches(3.8)
+    for i, t in enumerate(takeaways[:3]):
+        text = t if isinstance(t, str) else t.get("text", t.get("title", ""))
+        tbox = slide.shapes.add_textbox(
+            theme.MARGIN_L + Inches(0.3), y + i * Inches(0.65),
+            theme.CONTENT_W - Inches(0.3), Inches(0.5)
+        )
+        ttf = tbox.text_frame
+        ttf.word_wrap = True
+        tp = ttf.paragraphs[0]
+        run = tp.add_run()
+        run.text = f"→  {text}"
+        run.font.size = Pt(16)
+        run.font.color.rgb = theme.DARK_RGB
+        run.font.name = theme.FONT_FAMILY
+
+    footer.add_footer(slide)
+    if slide_data.get("conclusion"):
+        conc.add_conclusion_banner(slide, slide_data["conclusion"])
+
+
+BUILDERS = {
+    "cover_orange": build_cover,
+    "message_only": build_message_only,
+    "three_cards": build_three_cards,
+    "four_cards": build_four_cards,
+    "problem_solution": build_problem_solution,
+    "process_horizontal": build_process,
+    "kpi_context": build_kpi,
+    "lessons_learned": build_lessons,
+    "role_focus": build_role_focus,
+    "adoption_loop": build_adoption_loop,
+    "closing": build_closing,
+}

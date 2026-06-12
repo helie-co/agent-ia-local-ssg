@@ -1,68 +1,66 @@
 {
   "cover": {
-    "deckTitle": "Presentation Orange - Transformation Digitale",
-    "deckSubtitle": "REX et enseignements d'une adoption reussie",
-    "date": "JUIN 2026",
-    "authors": "Equipe Transformation"
+    "deckTitle": "Transformation Digitale - Retour d'Experience",
+    "deckSubtitle": "Adoption, gouvernance et passage a l'echelle",
+    "date": "Juin 2026",
+    "authors": "Direction Transformation"
   },
   "slides": [
     {
+      "title": "Contexte du projet",
       "type": "contexte",
-      "layout": "context_kpi_slide",
-      "placeholders": { "{{TITLE}}": "Contexte du projet", "{{SUBTITLE}}": "Chiffres cles" },
+      "layout": "kpi_context",
       "kpis": [
-        { "value": "85%", "label": "Taux d'adoption" },
-        { "value": "3x", "label": "Gains productivite" },
-        { "value": "500+", "label": "Utilisateurs formes" },
-        { "value": "12", "label": "Mois de deploiement" }
-      ]
+        { "value": "85%", "label": "Taux d'adoption", "icon": "users" },
+        { "value": "3x", "label": "Gains productivite", "icon": "chart" },
+        { "value": "500+", "label": "Utilisateurs formes", "icon": "training" },
+        { "value": "12", "label": "Mois de deploiement", "icon": "process" }
+      ],
+      "conclusion": "La comprehension du contexte est le point de depart de toute transformation."
     },
     {
+      "title": "La problematique initiale",
       "type": "problematique",
-      "layout": "problem_slide",
-      "placeholders": { "{{TITLE}}": "La problematique initiale" },
-      "problem": "Les equipes utilisaient des outils non connectes, sans vision transverse ni gouvernance centralisee.",
-      "impacts": "Doublons de donnees\nDecisions ralenties\nFrustration utilisateur\nCouts d'infrastructure eleves"
+      "layout": "problem_solution",
+      "problem": "Les equipes utilisaient des outils non connectes, sans vision globale ni gouvernance centralisee.",
+      "solution": "Une plateforme unique, des standards partages, un accompagnement continu des equipes.",
+      "conclusion": "La resolution du probleme passe par une approche structuree et inclusive."
     },
     {
-      "type": "question",
-      "layout": "question_answer_slide",
-      "placeholders": { "{{TITLE}}": "Question cle" },
-      "question": "Comment industrialiser la donnee tout en favorisant l'adoption ?",
-      "answer": "Une plateforme unique, des standards partages, un accompagnement continu",
-      "points": ["Approche progressive par pilotes", "Gouvernance transverse implantee tot", "Formation certifiante obligatoire"]
-    },
-    {
+      "title": "Notre approche en 4 etapes",
       "type": "processus",
-      "layout": "process_slide",
-      "placeholders": { "{{TITLE}}": "Notre approche en 4 etapes" },
+      "layout": "process_horizontal",
       "steps": [
-        { "title": "Diagnostic", "description": "Audit des pratiques existantes et maturite data" },
-        { "title": "Pilote", "description": "Deploiement rapide sur un cas d'usage prioritaire" },
-        { "title": "Passage a l'echelle", "description": "Industrialisation et deploiement progressif" },
-        { "title": "Adoption continue", "description": "Suivi des indicateurs et boucle d'amelioration" }
-      ]
+        { "title": "Diagnostic", "text": "Audit des pratiques existantes et maturite data" },
+        { "title": "Pilote", "text": "Deploiement rapide sur un cas prioritaire" },
+        { "title": "Scale", "text": "Industrialisation et deploiement progressif" },
+        { "title": "Adoption", "text": "Suivi des indicateurs et boucle d'amelioration" }
+      ],
+      "conclusion": "La standardisation du processus garantit la reproductibilite et la qualite."
     },
     {
-      "type": "roles",
-      "layout": "role_focus_slide",
-      "placeholders": { "{{TITLE}}": "Les roles cles" },
-      "roleName": "Data Product Owner",
-      "roleTitle": "Garant de la feuille de route data",
-      "responsibilities": ["Definir la vision produit", "Prioriser les cas d'usage", "Coordonner les equipes", "Mesurer l'impact metier"]
-    },
-    {
+      "title": "Enseignements cles",
       "type": "enseignements",
-      "layout": "lessons_slide",
-      "placeholders": { "{{TITLE}}": "Enseignements cles" },
-      "lessons": ["Commencer petit, penser grand : le pilote est indispensable", "La gouvernance ne se decrete pas, elle se co-construit", "Former ne suffit pas : il faut accompagner le changement", "Mesurer pour progresser : les KPIs sont votre boussole"]
+      "layout": "lessons_learned",
+      "lessons": [
+        "Commencer petit, penser grand : le pilote est indispensable",
+        "La gouvernance ne se decrete pas, elle se co-construit",
+        "Former ne suffit pas : il faut accompagner le changement",
+        "Mesurer pour progresser : les KPIs sont votre boussole"
+      ],
+      "conclusion": "Le partage des enseignements accelere la maturation collective."
     },
     {
+      "title": "Bilan et perspectives",
       "type": "bilan",
-      "layout": "conclusion_slide",
-      "placeholders": { "{{TITLE}}": "Bilan et perspectives" },
+      "layout": "closing",
       "mainMessage": "La transformation data est un voyage, pas une destination",
-      "takeaways": ["Les investissements data sont rentables a 18 mois", "L'adoption repose sur la confiance des equipes", "La prochaine etape : l'IA au service des metiers"]
+      "takeaways": [
+        "Les investissements data sont rentables a 18 mois",
+        "L'adoption repose sur la confiance des equipes",
+        "La prochaine etape : l'IA au service des metiers"
+      ],
+      "conclusion": "L'amelioration continue est le moteur de la transformation durable."
     }
   ]
 }
