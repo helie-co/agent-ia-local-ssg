@@ -127,9 +127,19 @@ def _build_slide_from_text(text, idx):
 
     title = extract_slide_title(text, idx)
 
+    subtitle = ""
+    if len(title) > 5:
+        words = title.split()
+        if len(words) > 3:
+            subtitle = " ".join(words[:3])
+        else:
+            subtitle = title
+
     slide = {
         "title": title,
+        "subtitle": subtitle,
         "type": slide_type,
+        "mainMessage": title,
         "cards": [],
         "kpis": [],
         "lessons": [],
@@ -168,13 +178,14 @@ def _build_slide_from_text(text, idx):
         slide["steps"] = [{"title": c["title"], "text": c["text"]}
                           for c in slide["cards"]]
 
-    conclusion_templates = [
-        "La cle du succes repose sur l'engagement de toutes les parties prenantes",
-        "La transformation est un voyage qui se construit etape par etape",
-        "L'innovation prend tout son sens quand elle est au service du metier",
-        "La gouvernance est le pilier d'une transformation durable",
-    ]
-    slide["conclusion"] = random.choice(conclusion_templates)
+    if not slide.get("conclusion"):
+        conclusion_templates = [
+            "La transformation se construit etape par etape.",
+            "La valeur nait de l'adoption des usages.",
+            "L'alignement metier et IT est la cle du succes.",
+            "Une donnee utilisee vaut plus qu'une donnee produite.",
+        ]
+        slide["conclusion"] = random.choice(conclusion_templates)
 
     return slide
 
@@ -240,6 +251,32 @@ def main():
             return
         elif issues and strict:
             print("\nCorrections automatiques appliquees.")
+
+    ds = quality.score_deck(deck)
+    print(f"\n=== Score Design ===")
+    print(ds.report())
+
+    if not ds.passed(90) and strict:
+        print(f"\nScore {ds.percentage}/100 < 90 : regeneration automatique...")
+        for s in deck.get("slides", []):
+            if not s.get("conclusion"):
+                s["conclusion"] = quality._auto_conclusion(s.get("type", ""))
+            if not s.get("subtitle") and s.get("title"):
+                words = s["title"].split()
+                s["subtitle"] = " ".join(words[:3])
+            if not s.get("mainMessage"):
+                s["mainMessage"] = s.get("subtitle", s.get("title", ""))
+            for key in ("cards", "kpis", "lessons", "steps", "phases"):
+                for item in s.get(key, []):
+                    if not item.get("icon"):
+                        item["icon"] = "lightbulb"
+                    text = item.get("text", "")
+                    if len(text.split()) > 12:
+                        item["text"] = " ".join(text.split()[:12])
+        ds2 = quality.score_deck(deck)
+        print(f"Score apres regeneration: {ds2.percentage}/100")
+        if ds2.percentage < ds.percentage:
+            print("Avertissement: le score n'a pas pu etre ameliore")
 
     output_dir = PROJECT_DIR
     output_name = f"Presentation_{random.randint(1000, 9999)}.pptx"

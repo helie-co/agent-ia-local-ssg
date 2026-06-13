@@ -8,8 +8,10 @@
   "slides": [
     {
       "title": "Contexte du projet",
+      "subtitle": "Chiffres clés de l'adoption",
       "type": "contexte",
       "layout": "kpi_context",
+      "mainMessage": "Une adoption massive en 12 mois",
       "kpis": [
         { "value": "85%", "label": "Taux d'adoption", "icon": "users" },
         { "value": "3x", "label": "Gains productivite", "icon": "chart" },
@@ -20,28 +22,34 @@
     },
     {
       "title": "La problematique initiale",
+      "subtitle": "Des outils non connectes, une vision fragmentee",
       "type": "problematique",
       "layout": "problem_solution",
+      "mainMessage": "Une plateforme unique comme reponse",
       "problem": "Les equipes utilisaient des outils non connectes, sans vision globale ni gouvernance centralisee.",
       "solution": "Une plateforme unique, des standards partages, un accompagnement continu des equipes.",
       "conclusion": "La resolution du probleme passe par une approche structuree et inclusive."
     },
     {
       "title": "Notre approche en 4 etapes",
+      "subtitle": "Du diagnostic a l'adoption continue",
       "type": "processus",
       "layout": "process_horizontal",
+      "mainMessage": "Une methodologie eprouvee",
       "steps": [
-        { "title": "Diagnostic", "text": "Audit des pratiques existantes et maturite data" },
-        { "title": "Pilote", "text": "Deploiement rapide sur un cas prioritaire" },
-        { "title": "Scale", "text": "Industrialisation et deploiement progressif" },
-        { "title": "Adoption", "text": "Suivi des indicateurs et boucle d'amelioration" }
+        { "title": "Diagnostic", "text": "Audit des pratiques et maturite data", "icon": "target" },
+        { "title": "Pilote", "text": "Deploiement rapide sur un cas prioritaire", "icon": "innovation" },
+        { "title": "Scale", "text": "Industrialisation et deploiement progressif", "icon": "process" },
+        { "title": "Adoption", "text": "Suivi des indicateurs et boucle d'amelioration", "icon": "adoption" }
       ],
       "conclusion": "La standardisation du processus garantit la reproductibilite et la qualite."
     },
     {
       "title": "Enseignements cles",
+      "subtitle": "4 lecons pour reussir sa transformation",
       "type": "enseignements",
       "layout": "lessons_learned",
+      "mainMessage": "Ce que nous avons appris",
       "lessons": [
         "Commencer petit, penser grand : le pilote est indispensable",
         "La gouvernance ne se decrete pas, elle se co-construit",
@@ -52,6 +60,7 @@
     },
     {
       "title": "Bilan et perspectives",
+      "subtitle": "Les prochaines etapes",
       "type": "bilan",
       "layout": "closing",
       "mainMessage": "La transformation data est un voyage, pas une destination",
