@@ -84,6 +84,7 @@ $files = @(
     @{ Source = "ppt-v2/.opencode/scripts/ppt-v2/icons.py"; Destination = ".opencode/scripts/ppt-v2/icons.py" },
     @{ Source = "ppt-v2/.opencode/scripts/ppt-v2/footer.py"; Destination = ".opencode/scripts/ppt-v2/footer.py" },
     @{ Source = "ppt-v2/.opencode/scripts/ppt-v2/conclusion.py"; Destination = ".opencode/scripts/ppt-v2/conclusion.py" },
+    @{ Source = "ppt-v2/.opencode/scripts/ppt-v2/decor.py"; Destination = ".opencode/scripts/ppt-v2/decor.py" },
     @{ Source = "ppt-v2/.opencode/scripts/ppt-v2/layouts.py"; Destination = ".opencode/scripts/ppt-v2/layouts.py" },
     @{ Source = "ppt-v2/.opencode/scripts/ppt-v2/slidebuilder.py"; Destination = ".opencode/scripts/ppt-v2/slidebuilder.py" },
     @{ Source = "ppt-v2/.opencode/scripts/ppt-v2/parser.py"; Destination = ".opencode/scripts/ppt-v2/parser.py" },
