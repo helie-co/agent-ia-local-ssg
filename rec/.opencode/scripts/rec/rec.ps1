@@ -40,8 +40,9 @@ function Start-DetachedProcess($cmdLine) {
   $startupClass = New-Object System.Management.ManagementClass("Win32_ProcessStartup")
   $startup = $startupClass.CreateInstance()
   $startup["ShowWindow"] = 0
-  $result = ([wmiclass]"Win32_Process").Create($cmdLine, $null, $startup)
-  if ($result.ReturnValue -ne 0) { throw "Echec creation processus (code: $($result.ReturnValue))" }
+  $workingDirectory = (Get-Location).Path
+  $result = ([wmiclass]"Win32_Process").Create($cmdLine, $workingDirectory, $startup)
+  if ($result.ReturnValue -ne 0) { throw "Echec creation processus (code: $($result.ReturnValue), cwd: $workingDirectory)" }
   return $result.ProcessId
 }
 
@@ -54,16 +55,7 @@ function Get-FfmpegPath {
   $wingetPath = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter ffmpeg.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
   if ($wingetPath) { $script:FfmpegPath = $wingetPath; return $script:FfmpegPath }
 
-  winget install -e --id Gyan.FFmpeg --accept-source-agreements --accept-package-agreements
-  $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
-
-  $ffmpeg = Get-Command ffmpeg -ErrorAction SilentlyContinue
-  if ($ffmpeg) { $script:FfmpegPath = $ffmpeg.Source; return $script:FfmpegPath }
-
-  $wingetPath = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter ffmpeg.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
-  if ($wingetPath) { $script:FfmpegPath = $wingetPath; return $script:FfmpegPath }
-
-  throw "ffmpeg introuvable. Installe-le avec: winget install -e --id Gyan.FFmpeg"
+  throw "ffmpeg introuvable. Lance /rec --install pour installer ou reparer les dependances."
 }
 
 function Get-WhisperCliPath {
@@ -75,21 +67,7 @@ function Get-WhisperCliPath {
   $fromPath = Get-Command whisper-cli -ErrorAction SilentlyContinue
   if ($fromPath) { $script:WhisperCliPath = $fromPath.Source; return $script:WhisperCliPath }
 
-  Write-Output '[transcribe] whisper-cli introuvable. Telechargement...'
-  $zip = Join-Path $Script:ToolsRoot 'whisper-bin-x64.zip'
-  New-Item -ItemType Directory -Force -Path $Script:ToolsRoot | Out-Null
-  if (Test-Path $Script:WhisperDir) { Remove-Item $Script:WhisperDir -Recurse -Force }
-
-  (New-Object System.Net.WebClient).DownloadFile('https://github.com/ggml-org/whisper.cpp/releases/latest/download/whisper-bin-x64.zip', $zip)
-  if (-not (Test-Path $zip)) { throw 'Echec du telechargement de whisper-cli' }
-
-  Expand-Archive -LiteralPath $zip -DestinationPath $Script:WhisperDir -Force
-  Remove-Item $zip -Force
-
-  $found = Get-ChildItem $Script:WhisperDir -Recurse -Filter 'whisper-cli.exe' -File | Where-Object { $_.FullName -match '\\Release\\' } | Select-Object -First 1
-  if (-not $found) { throw 'whisper-cli.exe introuvable apres extraction du zip' }
-  $script:WhisperCliPath = $found.FullName
-  return $script:WhisperCliPath
+  throw "whisper-cli introuvable. Lance /rec --install pour installer ou reparer les dependances."
 }
 
 function Get-WhisperModelPath {
@@ -99,21 +77,10 @@ function Get-WhisperModelPath {
   if (Test-Path $model) {
     $size = (Get-Item $model).Length
     if ($size -gt 400MB) { $script:WhisperModelPath = $model; return $script:WhisperModelPath }
-    Write-Output "[transcribe] Modele incomplet (${size} octets), re-telechargement..."
-    Remove-Item $model -Force
+    throw "Modele whisper incomplet (${size} octets). Supprime le fichier et relance /rec --install."
   }
 
-  Write-Output '[transcribe] Telechargement du modele whisper (~465 Mo)...'
-  New-Item -ItemType Directory -Force -Path (Split-Path $model) | Out-Null
-  (New-Object System.Net.WebClient).DownloadFile('https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin', $model)
-  if (-not (Test-Path $model)) { throw 'Echec du telechargement du modele whisper' }
-
-  $size = (Get-Item $model).Length
-  if ($size -lt 400MB) { throw "Modele telecharge invalide (${size} octets). Reessaye manuellement." }
-
-  $script:WhisperModelPath = $model
-  Write-Output "[transcribe] Modele telecharge : $([math]::Round($size/1MB, 1)) Mo"
-  return $script:WhisperModelPath
+  throw "Modele whisper introuvable. Lance /rec --install pour installer ou reparer les dependances."
 }
 
 function Get-AudioDevices {
@@ -266,7 +233,7 @@ do {
 }
 
 function Start-LiveTranscriber($ffmpegPid, $timestamp, $mode, $language) {
-  $scriptPath = Join-Path (Get-Location) '.opencode\scripts\rec.ps1'
+  $scriptPath = Join-Path (Get-Location) '.opencode\scripts\rec\rec.ps1'
   $cmdLine = "& '$scriptPath' -WatchTranscript -FfmpegPid $ffmpegPid -Timestamp '$timestamp' -Mode '$mode' -Language '$language'"
   $bytes = [Text.Encoding]::Unicode.GetBytes($cmdLine)
   $encoded = [Convert]::ToBase64String($bytes)
@@ -439,7 +406,7 @@ function Concat-Chunks($timestamp, $chunks, $finalFile) {
 }
 
 function Start-FinalizeAsync($session, $language) {
-  $scriptPath = Join-Path (Get-Location) '.opencode\scripts\rec.ps1'
+  $scriptPath = Join-Path (Get-Location) '.opencode\scripts\rec\rec.ps1'
   $tempFile = Join-Path $env:TEMP "rec_finalize_$([guid]::NewGuid().ToString('N')).ps1"
   $finalScript = @"
 `$root = '$((Split-Path $session.output_file -Parent).Replace("'","''"))'

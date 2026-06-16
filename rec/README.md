@@ -30,20 +30,24 @@ Depuis OpenCode Desktop, dans le projet cible, demander :
 Installer uniquement la commande projet /rec depuis https://github.com/helie-co/agent-ia-local-ssg/tree/main/rec. OpenCode Desktop est deja installe, ne pas l installer. Ne pas utiliser git.
 ```
 
-Apres installation, redemarrer OpenCode Desktop depuis ce projet.
+Cette etape installe uniquement la commande projet. Elle ne telecharge pas les dependances.
+
+Apres installation, redemarrer OpenCode Desktop depuis ce projet pour charger `/rec`.
 
 ### Dependances
 
-Les dependances sont installees automatiquement lors de l'installation de la commande :
+Les dependances sont installees separement avec `/rec --install` :
 - **ffmpeg** via winget (package `Gyan.FFmpeg`)
 - **whisper-cli** (telecharge depuis GitHub releases)
 - **Modele whisper** `ggml-small.bin` (telecharge depuis HuggingFace)
 
-Pour reinstaller ou reparer les dependances, lancer :
+Apres le redemarrage d'OpenCode Desktop, lancer :
 
 ```text
 /rec --install
 ```
+
+Ce mode peut aussi etre relance plus tard pour reparer une installation incomplete.
 
 ### Stereo Mix
 

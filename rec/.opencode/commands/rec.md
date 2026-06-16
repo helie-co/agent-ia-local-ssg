@@ -83,6 +83,7 @@ if (-not (Test-Path $modelFile)) { throw 'Modele introuvable apres telechargemen
 "modele=$modelFile"
 
 $modelSize = (Get-Item $modelFile).Length
+if ($modelSize -lt 400MB) { throw "Modele whisper incomplet: $modelFile ($modelSize octets). Supprime ce fichier puis relance /rec --install." }
 "modele_taille=$($modelSize) octets"
 
 # --- Stereo Mix ---
