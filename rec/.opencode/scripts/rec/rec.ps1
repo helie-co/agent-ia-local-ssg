@@ -854,6 +854,84 @@ Commandes :
 '@
 }
 
+function Install-Dependencies {
+  $ErrorActionPreference = 'Stop'
+
+  $toolsRoot = Join-Path $env:LOCALAPPDATA 'opencode-tools'
+  $whisperDir = Join-Path $toolsRoot 'whisper.cpp'
+  $modelDir = Join-Path $whisperDir 'models'
+  $modelFile = Join-Path $modelDir 'ggml-small.bin'
+
+  $ffmpegExe = $null
+  $ffmpegCmd = Get-Command ffmpeg -ErrorAction SilentlyContinue
+  if ($ffmpegCmd) { $ffmpegExe = $ffmpegCmd.Source }
+
+  if (-not $ffmpegExe) {
+    $candidate = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter ffmpeg.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+    if ($candidate) { $ffmpegExe = $candidate }
+  }
+
+  if (-not $ffmpegExe) {
+    Write-Output 'Installation de ffmpeg...'
+    winget install -e --id Gyan.FFmpeg --accept-source-agreements --accept-package-agreements
+    $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+    $ffmpegCmd = Get-Command ffmpeg -ErrorAction SilentlyContinue
+    if ($ffmpegCmd) { $ffmpegExe = $ffmpegCmd.Source }
+    if (-not $ffmpegExe) {
+      $candidate = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter ffmpeg.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+      if ($candidate) { $ffmpegExe = $candidate }
+    }
+  }
+
+  if (-not $ffmpegExe) { throw 'ffmpeg introuvable apres installation' }
+  "ffmpeg=$ffmpegExe"
+
+  $whisperCli = Join-Path $whisperDir 'Release\whisper-cli.exe'
+  if (-not (Test-Path $whisperCli)) {
+    Write-Output 'Telechargement de whisper-cli...'
+    New-Item -ItemType Directory -Force -Path $whisperDir | Out-Null
+    $zip = Join-Path $toolsRoot 'whisper-bin-x64.zip'
+    Invoke-WebRequest -Uri 'https://github.com/ggml-org/whisper.cpp/releases/latest/download/whisper-bin-x64.zip' -OutFile $zip -ErrorAction Stop
+    Expand-Archive -LiteralPath $zip -DestinationPath $whisperDir -Force
+    Remove-Item $zip -Force
+    $found = Get-ChildItem $whisperDir -Recurse -Filter 'whisper-cli.exe' -File | Where-Object { $_.FullName -match '\\Release\\' } | Select-Object -First 1 -ExpandProperty FullName
+    if (-not $found) { throw 'whisper-cli.exe introuvable apres extraction' }
+    $whisperCli = $found
+  }
+  "whisper-cli=$whisperCli"
+
+  if (-not (Test-Path $modelFile)) {
+    Write-Output 'Telechargement du modele ggml-small.bin...'
+    New-Item -ItemType Directory -Force -Path $modelDir | Out-Null
+    Invoke-WebRequest -Uri 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin' -OutFile $modelFile -ErrorAction Stop
+  }
+  if (-not (Test-Path $modelFile)) { throw 'Modele introuvable apres telechargement' }
+  "modele=$modelFile"
+
+  $modelSize = (Get-Item $modelFile).Length
+  if ($modelSize -lt 400MB) { throw "Modele whisper incomplet: $modelFile ($modelSize octets). Supprime ce fichier puis relance /rec --install." }
+  "modele_taille=$($modelSize) octets"
+
+  $output = & cmd.exe /d /c "`"$ffmpegExe`" -hide_banner -list_devices true -f dshow -i dummy 2>&1" | Out-String
+  $hasStereoMix = $output -match '(?i)stereo mix|mixage stereo|what u hear'
+  if ($hasStereoMix) {
+    'stereo_mix=detecte'
+  } else {
+    'stereo_mix=absent'
+    Write-Output ''
+    Write-Output '=== Stereo Mix non detecte ==='
+    Write-Output 'Pour enregistrer l audio systeme, active Stereo Mix :'
+    Write-Output '1. Ouvre la fenetre Son, onglet Enregistrement : control mmsys.cpl,,1'
+    Write-Output '2. Clic droit dans la liste vide -> Afficher les peripheriques desactives'
+    Write-Output '3. Clic droit sur Stereo Mix -> Activer'
+    Write-Output "4. Reviens ici et verifie avec 'ffmpeg -list_devices'"
+  }
+
+  Write-Output ''
+  Write-Output 'Installation terminee.'
+  Write-Output 'Redemarre OpenCode Desktop pour charger la commande /rec.'
+}
+
 if ($Help) { Show-Usage; return }
 
 if ($WatchTranscript) {
@@ -888,7 +966,9 @@ if ($RawArgs) {
   if ($current) { $tokens += $current }
 
   if ($tokens.Count -gt 0) {
-    $Command = $tokens[0]
+    if ($tokens[0] -eq '--help') { $Command = 'help' }
+    elseif ($tokens[0] -eq '--install') { $Command = 'install' }
+    else { $Command = $tokens[0] }
     $i = 1
     while ($i -lt $tokens.Count) {
       switch -Wildcard ($tokens[$i]) {
@@ -911,6 +991,7 @@ if (-not $Command -and $args.Count -gt 0) { $Command = $args[0] }
 switch ($Command) {
   '' { Show-Usage; return }
   'help' { Show-Usage; return }
+  'install' { Install-Dependencies }
   'video' { Start-Recording 'video' $false $Title }
   'video+' { Start-Recording 'video' $true $Title }
   'audio' { Start-Recording 'audio' $false $Title }
