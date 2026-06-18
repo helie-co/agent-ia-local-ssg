@@ -900,6 +900,9 @@ function Download-FileWithProgress {
           $nextLog = $downloaded + [int64](10MB)
         }
       }
+      if ($total -gt 0 -and $downloaded -lt $total) {
+        throw "$Label : telechargement incomplet ($downloaded / $total octets)"
+      }
       Write-Output "$Label : telechargement termine ($downloaded octets)"
     } finally {
       if ($outputStream) { $outputStream.Dispose() }
@@ -920,6 +923,7 @@ function Install-Dependencies {
   $whisperDir = Join-Path $toolsRoot 'whisper.cpp'
   $modelDir = Join-Path $whisperDir 'models'
   $modelFile = Join-Path $modelDir 'ggml-small.bin'
+  $modelPart = "$modelFile.part"
 
   Write-Output "tools_root=$toolsRoot"
 
@@ -983,12 +987,24 @@ function Install-Dependencies {
     Write-Output 'Modele present mais incomplet. Suppression puis nouveau telechargement.'
     Remove-Item $modelFile -Force
   }
+  if (Test-Path $modelPart) {
+    Write-Output 'Telechargement precedent incomplet detecte. Suppression du fichier temporaire.'
+    Remove-Item $modelPart -Force
+  }
 
   if (-not (Test-Path $modelFile)) {
     Write-Output 'Modele absent. Telechargement du modele ggml-small.bin...'
     Write-Output 'Cette etape peut prendre plusieurs minutes selon la connexion.'
     New-Item -ItemType Directory -Force -Path $modelDir | Out-Null
-    Download-FileWithProgress -Uri 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin' -OutFile $modelFile -Label 'modele whisper'
+    try {
+      Download-FileWithProgress -Uri 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin' -OutFile $modelPart -Label 'modele whisper'
+      $partSize = (Get-Item $modelPart).Length
+      if ($partSize -lt 400MB) { throw "Modele whisper incomplet apres telechargement: $modelPart ($partSize octets)" }
+      Move-Item -LiteralPath $modelPart -Destination $modelFile -Force
+    } catch {
+      Remove-Item $modelPart -Force -ErrorAction SilentlyContinue
+      throw "Telechargement du modele whisper interrompu ou incomplet. Relance /rec install pour recommencer. Detail: $($_.Exception.Message)"
+    }
   } else {
     Write-Output 'Modele deja present.'
   }
@@ -996,7 +1012,7 @@ function Install-Dependencies {
   Write-Output "modele=$modelFile"
 
   $modelSize = (Get-Item $modelFile).Length
-  if ($modelSize -lt 400MB) { throw "Modele whisper incomplet: $modelFile ($modelSize octets). Supprime ce fichier puis relance /rec install." }
+  if ($modelSize -lt 400MB) { Remove-Item $modelFile -Force -ErrorAction SilentlyContinue; throw "Modele whisper incomplet: $modelFile ($modelSize octets). Relance /rec install pour recommencer." }
   Write-Output "modele_taille=$($modelSize) octets"
 
   Write-Output ''
@@ -1086,6 +1102,10 @@ function Show-InstallStatus {
   $modelFile = Join-Path $Script:WhisperDir 'models\ggml-small.bin'
   if (Test-Path $modelFile) {
     $size = (Get-Item $modelFile).Length
+    $percent = [math]::Round(($size * 100.0) / 487601967, 1)
+    Write-Output "- modele : $size / 487601967 octets ($percent%)"
+  } elseif (Test-Path "$modelFile.part") {
+    $size = (Get-Item "$modelFile.part").Length
     $percent = [math]::Round(($size * 100.0) / 487601967, 1)
     Write-Output "- modele : $size / 487601967 octets ($percent%)"
   } else {
