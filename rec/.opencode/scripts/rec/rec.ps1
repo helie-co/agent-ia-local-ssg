@@ -344,8 +344,8 @@ function Start-Recording($mode, $chunked, $title) {
   if ($title) { Write-Output "- titre : $title" }
   Write-Output "- sortie : $outputFile"
   Write-Output "- journal : $logFile"
-  if ($chunked) { Write-Output '- note : utilise "rec stop" pour finaliser et fusionner les chunks' }
-  Write-Output '- astuce : utilise "rec status" pour voir la progression'
+  if ($chunked) { Write-Output '- note : utilise "/rec stop" pour finaliser et fusionner les chunks' }
+  Write-Output '- astuce : utilise "/rec status" pour voir la progression'
 }
 
 function Stop-Pid($processId, $wakeLockPid, $liveTranscribePid) {
@@ -1052,15 +1052,15 @@ try {
 
   if ($openWindow) {
     $process = Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-NoExit', '-EncodedCommand', $encoded) -PassThru
-    $pid = $process.Id
+    $installPid = $process.Id
   } else {
-    $pid = Start-DetachedProcess "powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand $encoded"
+    $installPid = Start-DetachedProcess "powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand $encoded"
   }
 
-  Set-Content $Script:InstallPidFile $pid -Encoding UTF8
+  Set-Content $Script:InstallPidFile $installPid -Encoding UTF8
 
   Write-Output 'Installation /rec lancee.'
-  Write-Output "- pid : $pid"
+  Write-Output "- pid : $installPid"
   Write-Output "- log : $Script:InstallLogFile"
   if ($openWindow) { Write-Output '- affichage : fenetre PowerShell separee' }
   Write-Output 'Utilise /rec install-status pour suivre la progression dans OpenCode.'
