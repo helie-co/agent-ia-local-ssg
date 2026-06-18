@@ -117,7 +117,7 @@ function Show-Devices {
   }
   Write-Output ""
   if (-not $micFound) { Write-Output "ATTENTION: aucun micro detecte. La transcription sera silencieuse." }
-  if (-not $sysFound) { Write-Output "ATTENTION: aucun Stereo Mix detecte. Modifier les sons système > Enregistrement > Stéréo Mix > Bouton droit > Activer > OK." }
+  if (-not $sysFound) { Write-Output "ATTENTION: aucun Stereo Mix detecte. Modifier les sons systeme > Enregistrement > Stereo Mix > Bouton droit > Activer > OK." }
   if ($micFound -and $sysFound) { Write-Output "OK: Micro et Stereo Mix trouves, enregistrement audio+ fonctionnel." }
 }
 
@@ -1026,7 +1026,7 @@ function Install-Dependencies {
     Write-Output ''
     Write-Output '=== Stereo Mix non detecte ==='
     Write-Output 'Pour enregistrer l audio systeme :'
-    Write-Output 'Modifier les sons système > Enregistrement > Stéréo Mix > Bouton droit > Activer > OK'
+    Write-Output 'Modifier les sons systeme > Enregistrement > Stereo Mix > Bouton droit > Activer > OK'
   }
 
   Write-Output ''
@@ -1116,7 +1116,11 @@ function Show-InstallStatus {
     Write-Output ''
     Write-Output 'Dernieres lignes du log :'
     $lines = @(Get-Content $Script:InstallLogFile -Encoding UTF8 -ErrorAction SilentlyContinue)
-    foreach ($line in ($lines | Select-Object -Last 80)) { Write-Output $line }
+    foreach ($line in ($lines | Select-Object -Last 80)) {
+      $line = $line -replace 'Modifier les sons syst..me > Enregistrement > St..r..o Mix > Bouton droit > Activer > OK', 'Modifier les sons systeme > Enregistrement > Stereo Mix > Bouton droit > Activer > OK'
+      $line = $line -replace 'Modifier les sons système > Enregistrement > Stéréo Mix > Bouton droit > Activer > OK', 'Modifier les sons systeme > Enregistrement > Stereo Mix > Bouton droit > Activer > OK'
+      Write-Output $line
+    }
   } else {
     Write-Output ''
     Write-Output 'Aucun log disponible.'
