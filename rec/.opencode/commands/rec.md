@@ -12,6 +12,5 @@ Commande normale :
 ```powershell
 $script = Join-Path (Get-Location) '.opencode\scripts\rec\rec.ps1'
 $rawArgs = '$ARGUMENTS'
-$output = & powershell -NoProfile -ExecutionPolicy Bypass -Command "& '$script' -RawArgs '$rawArgs'"
-@($output) -join "`r`n"
+& powershell -NoProfile -ExecutionPolicy Bypass -Command "& '$script' -RawArgs '$rawArgs'"
 ```

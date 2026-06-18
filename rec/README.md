@@ -5,6 +5,8 @@ Commande pour enregistrement ecran/audio avec transcription live (whisper.cpp), 
 ## Usage rapide
 
 ```text
+/rec                   Afficher l'aide
+/rec help              Afficher l'aide
 /rec video              Enregistrement ecran (non decoupe)
 /rec video+             Enregistrement ecran + transcription directe
 /rec audio              Enregistrement audio (non decoupe)
@@ -16,8 +18,7 @@ Commande pour enregistrement ecran/audio avec transcription live (whisper.cpp), 
 /rec list               Lister les enregistrements
 /rec recover [N|all]    Recuperer des chunks orphelins
 /rec clean [--all]      Nettoyer les chunks deja fusionnes
-/rec --install          Installer les dependances (ffmpeg, whisper, modele)
-/rec --help             Afficher cette aide
+/rec install            Installer les dependances (ffmpeg, whisper, modele)
 ```
 
 ## Installation
@@ -36,15 +37,17 @@ Apres installation, redemarrer OpenCode Desktop depuis ce projet pour charger `/
 
 ### Dependances
 
-Les dependances sont installees separement avec `/rec --install` :
+Les dependances sont installees separement avec `/rec install` :
 - **ffmpeg** via winget (package `Gyan.FFmpeg`)
 - **whisper-cli** (telecharge depuis GitHub releases)
 - **Modele whisper** `ggml-small.bin` (telecharge depuis HuggingFace)
 
+L'installation affiche les etapes en cours et la progression des gros telechargements.
+
 Apres le redemarrage d'OpenCode Desktop, lancer :
 
 ```text
-/rec --install
+/rec install
 ```
 
 Ce mode peut aussi etre relance plus tard pour reparer une installation incomplete.
@@ -53,11 +56,9 @@ Ce mode peut aussi etre relance plus tard pour reparer une installation incomple
 
 Pour enregistrer l'audio systeme (son des applications, musique, visio), le peripherique **Stereo Mix** doit etre active.
 
-Si `/rec --install` detecte que Stereo Mix est absent, il ouvre automatiquement la fenetre `Son` (onglet Enregistrement) :
+Si `/rec install` detecte que Stereo Mix est absent, active-le avec le chemin suivant :
 
-1. Clic droit dans la liste vide -> **Afficher les peripheriques desactives**
-2. Clic droit sur **Stereo Mix** -> **Activer**
-3. Fermer la fenetre
+Modifier les sons système > Enregistrement > Stéréo Mix > Bouton droit > Activer > OK
 
 Verifier ensuite avec :
 

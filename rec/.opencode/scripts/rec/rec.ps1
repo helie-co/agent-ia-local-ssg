@@ -55,7 +55,7 @@ function Get-FfmpegPath {
   $wingetPath = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter ffmpeg.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
   if ($wingetPath) { $script:FfmpegPath = $wingetPath; return $script:FfmpegPath }
 
-  throw "ffmpeg introuvable. Lance /rec --install pour installer ou reparer les dependances."
+  throw "ffmpeg introuvable. Lance /rec install pour installer ou reparer les dependances."
 }
 
 function Get-WhisperCliPath {
@@ -67,7 +67,7 @@ function Get-WhisperCliPath {
   $fromPath = Get-Command whisper-cli -ErrorAction SilentlyContinue
   if ($fromPath) { $script:WhisperCliPath = $fromPath.Source; return $script:WhisperCliPath }
 
-  throw "whisper-cli introuvable. Lance /rec --install pour installer ou reparer les dependances."
+  throw "whisper-cli introuvable. Lance /rec install pour installer ou reparer les dependances."
 }
 
 function Get-WhisperModelPath {
@@ -77,10 +77,10 @@ function Get-WhisperModelPath {
   if (Test-Path $model) {
     $size = (Get-Item $model).Length
     if ($size -gt 400MB) { $script:WhisperModelPath = $model; return $script:WhisperModelPath }
-    throw "Modele whisper incomplet (${size} octets). Supprime le fichier et relance /rec --install."
+    throw "Modele whisper incomplet (${size} octets). Supprime le fichier et relance /rec install."
   }
 
-  throw "Modele whisper introuvable. Lance /rec --install pour installer ou reparer les dependances."
+  throw "Modele whisper introuvable. Lance /rec install pour installer ou reparer les dependances."
 }
 
 function Get-AudioDevices {
@@ -115,7 +115,7 @@ function Show-Devices {
   }
   Write-Output ""
   if (-not $micFound) { Write-Output "ATTENTION: aucun micro detecte. La transcription sera silencieuse." }
-  if (-not $sysFound) { Write-Output "ATTENTION: aucun Stereo Mix detecte. Active-le dans Panneau de configuration > Son > Proprietes > Ecouter > Cocher 'Ecouter ce peripherique'." }
+  if (-not $sysFound) { Write-Output "ATTENTION: aucun Stereo Mix detecte. Modifier les sons système > Enregistrement > Stéréo Mix > Bouton droit > Activer > OK." }
   if ($micFound -and $sysFound) { Write-Output "OK: Micro et Stereo Mix trouves, enregistrement audio+ fonctionnel." }
 }
 
@@ -840,6 +840,7 @@ function Show-Usage {
 Utilisation : /rec [commande] [options]
 
 Commandes :
+  help                    Afficher cette aide (/rec sans argument fait pareil)
   video [--titre T]       Enregistrement ecran (non decoupe)
   video+ [--titre T]      Enregistrement ecran + transcription directe
   audio [--titre T]       Enregistrement audio (non decoupe)
@@ -851,80 +852,161 @@ Commandes :
   list                    Lister les enregistrements
   recover [N|all]         Recuperer des chunks orphelins
   clean [--all]           Nettoyer les chunks complets
+  install                 Installer les dependances
 '@
+}
+
+function Download-FileWithProgress {
+  param(
+    [string]$Uri,
+    [string]$OutFile,
+    [string]$Label
+  )
+
+  $parent = Split-Path -Parent $OutFile
+  if ($parent -and -not (Test-Path $parent)) { New-Item -ItemType Directory -Force -Path $parent | Out-Null }
+
+  Write-Output "$Label : demarrage du telechargement"
+  Write-Output "$Label : source=$Uri"
+  Write-Output "$Label : destination=$OutFile"
+
+  $request = [System.Net.HttpWebRequest]::Create($Uri)
+  $request.UserAgent = 'opencode-rec-installer'
+  $response = $request.GetResponse()
+  try {
+    $total = [int64]$response.ContentLength
+    if ($total -gt 0) { Write-Output "$Label : taille=$total octets" }
+
+    $inputStream = $response.GetResponseStream()
+    $outputStream = [System.IO.File]::Open($OutFile, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+    try {
+      $buffer = New-Object byte[] (1024 * 1024)
+      $downloaded = [int64]0
+      $nextLog = [int64](10MB)
+      while (($read = $inputStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+        $outputStream.Write($buffer, 0, $read)
+        $downloaded += $read
+        if ($downloaded -ge $nextLog) {
+          if ($total -gt 0) {
+            $percent = [math]::Round(($downloaded * 100.0) / $total, 1)
+            Write-Output "$Label : $downloaded / $total octets ($percent%)"
+          } else {
+            Write-Output "$Label : $downloaded octets telecharges"
+          }
+          $nextLog = $downloaded + [int64](10MB)
+        }
+      }
+      Write-Output "$Label : telechargement termine ($downloaded octets)"
+    } finally {
+      if ($outputStream) { $outputStream.Dispose() }
+      if ($inputStream) { $inputStream.Dispose() }
+    }
+  } finally {
+    if ($response) { $response.Dispose() }
+  }
 }
 
 function Install-Dependencies {
   $ErrorActionPreference = 'Stop'
+
+  Write-Output '=== Installation /rec ==='
+  Write-Output 'Verification des dependances: ffmpeg, whisper-cli, modele whisper, Stereo Mix.'
 
   $toolsRoot = Join-Path $env:LOCALAPPDATA 'opencode-tools'
   $whisperDir = Join-Path $toolsRoot 'whisper.cpp'
   $modelDir = Join-Path $whisperDir 'models'
   $modelFile = Join-Path $modelDir 'ggml-small.bin'
 
-  $ffmpegExe = $null
-  $ffmpegCmd = Get-Command ffmpeg -ErrorAction SilentlyContinue
-  if ($ffmpegCmd) { $ffmpegExe = $ffmpegCmd.Source }
+  Write-Output "tools_root=$toolsRoot"
 
-  if (-not $ffmpegExe) {
-    $candidate = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter ffmpeg.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
-    if ($candidate) { $ffmpegExe = $candidate }
+  $ffmpegExe = $null
+  Write-Output ''
+  Write-Output '[1/4] Verification de ffmpeg...'
+  $ffmpegCmd = Get-Command ffmpeg -ErrorAction SilentlyContinue
+  if ($ffmpegCmd) {
+    $ffmpegExe = $ffmpegCmd.Source
+    Write-Output 'ffmpeg deja disponible dans le PATH.'
   }
 
   if (-not $ffmpegExe) {
-    Write-Output 'Installation de ffmpeg...'
+    Write-Output 'ffmpeg absent du PATH. Recherche dans les packages winget locaux...'
+    $candidate = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter ffmpeg.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+    if ($candidate) {
+      $ffmpegExe = $candidate
+      Write-Output 'ffmpeg trouve dans les packages winget locaux.'
+    }
+  }
+
+  if (-not $ffmpegExe) {
+    Write-Output 'Installation de ffmpeg via winget...'
     winget install -e --id Gyan.FFmpeg --accept-source-agreements --accept-package-agreements
+    Write-Output 'winget termine. Rafraichissement du PATH...'
     $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
     $ffmpegCmd = Get-Command ffmpeg -ErrorAction SilentlyContinue
     if ($ffmpegCmd) { $ffmpegExe = $ffmpegCmd.Source }
     if (-not $ffmpegExe) {
+      Write-Output 'ffmpeg non trouve dans le PATH. Nouvelle recherche dans les packages winget locaux...'
       $candidate = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter ffmpeg.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
       if ($candidate) { $ffmpegExe = $candidate }
     }
   }
 
   if (-not $ffmpegExe) { throw 'ffmpeg introuvable apres installation' }
-  "ffmpeg=$ffmpegExe"
+  Write-Output "ffmpeg=$ffmpegExe"
 
+  Write-Output ''
+  Write-Output '[2/4] Verification de whisper-cli...'
   $whisperCli = Join-Path $whisperDir 'Release\whisper-cli.exe'
   if (-not (Test-Path $whisperCli)) {
-    Write-Output 'Telechargement de whisper-cli...'
+    Write-Output 'whisper-cli absent. Telechargement de whisper-cli...'
     New-Item -ItemType Directory -Force -Path $whisperDir | Out-Null
     $zip = Join-Path $toolsRoot 'whisper-bin-x64.zip'
-    Invoke-WebRequest -Uri 'https://github.com/ggml-org/whisper.cpp/releases/latest/download/whisper-bin-x64.zip' -OutFile $zip -ErrorAction Stop
+    Download-FileWithProgress -Uri 'https://github.com/ggml-org/whisper.cpp/releases/latest/download/whisper-bin-x64.zip' -OutFile $zip -Label 'whisper-cli'
+    Write-Output 'Extraction de whisper-cli...'
     Expand-Archive -LiteralPath $zip -DestinationPath $whisperDir -Force
     Remove-Item $zip -Force
     $found = Get-ChildItem $whisperDir -Recurse -Filter 'whisper-cli.exe' -File | Where-Object { $_.FullName -match '\\Release\\' } | Select-Object -First 1 -ExpandProperty FullName
     if (-not $found) { throw 'whisper-cli.exe introuvable apres extraction' }
     $whisperCli = $found
+  } else {
+    Write-Output 'whisper-cli deja installe.'
   }
-  "whisper-cli=$whisperCli"
+  Write-Output "whisper-cli=$whisperCli"
+
+  Write-Output ''
+  Write-Output '[3/4] Verification du modele whisper ggml-small.bin...'
+  if ((Test-Path $modelFile) -and ((Get-Item $modelFile).Length -lt 400MB)) {
+    Write-Output 'Modele present mais incomplet. Suppression puis nouveau telechargement.'
+    Remove-Item $modelFile -Force
+  }
 
   if (-not (Test-Path $modelFile)) {
-    Write-Output 'Telechargement du modele ggml-small.bin...'
+    Write-Output 'Modele absent. Telechargement du modele ggml-small.bin...'
+    Write-Output 'Cette etape peut prendre plusieurs minutes selon la connexion.'
     New-Item -ItemType Directory -Force -Path $modelDir | Out-Null
-    Invoke-WebRequest -Uri 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin' -OutFile $modelFile -ErrorAction Stop
+    Download-FileWithProgress -Uri 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin' -OutFile $modelFile -Label 'modele whisper'
+  } else {
+    Write-Output 'Modele deja present.'
   }
   if (-not (Test-Path $modelFile)) { throw 'Modele introuvable apres telechargement' }
-  "modele=$modelFile"
+  Write-Output "modele=$modelFile"
 
   $modelSize = (Get-Item $modelFile).Length
-  if ($modelSize -lt 400MB) { throw "Modele whisper incomplet: $modelFile ($modelSize octets). Supprime ce fichier puis relance /rec --install." }
-  "modele_taille=$($modelSize) octets"
+  if ($modelSize -lt 400MB) { throw "Modele whisper incomplet: $modelFile ($modelSize octets). Supprime ce fichier puis relance /rec install." }
+  Write-Output "modele_taille=$($modelSize) octets"
 
+  Write-Output ''
+  Write-Output '[4/4] Verification de Stereo Mix...'
   $output = & cmd.exe /d /c "`"$ffmpegExe`" -hide_banner -list_devices true -f dshow -i dummy 2>&1" | Out-String
   $hasStereoMix = $output -match '(?i)stereo mix|mixage stereo|what u hear'
   if ($hasStereoMix) {
-    'stereo_mix=detecte'
+    Write-Output 'stereo_mix=detecte'
   } else {
-    'stereo_mix=absent'
+    Write-Output 'stereo_mix=absent'
     Write-Output ''
     Write-Output '=== Stereo Mix non detecte ==='
-    Write-Output 'Pour enregistrer l audio systeme, active Stereo Mix :'
-    Write-Output '1. Ouvre la fenetre Son, onglet Enregistrement : control mmsys.cpl,,1'
-    Write-Output '2. Clic droit dans la liste vide -> Afficher les peripheriques desactives'
-    Write-Output '3. Clic droit sur Stereo Mix -> Activer'
-    Write-Output "4. Reviens ici et verifie avec 'ffmpeg -list_devices'"
+    Write-Output 'Pour enregistrer l audio systeme :'
+    Write-Output 'Modifier les sons système > Enregistrement > Stéréo Mix > Bouton droit > Activer > OK'
   }
 
   Write-Output ''
@@ -967,7 +1049,6 @@ if ($RawArgs) {
 
   if ($tokens.Count -gt 0) {
     if ($tokens[0] -eq '--help') { $Command = 'help' }
-    elseif ($tokens[0] -eq '--install') { $Command = 'install' }
     else { $Command = $tokens[0] }
     $i = 1
     while ($i -lt $tokens.Count) {
