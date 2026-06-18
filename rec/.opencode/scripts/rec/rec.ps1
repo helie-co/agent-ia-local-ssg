@@ -22,6 +22,8 @@ $Script:StateFile = Join-Path $Script:RecordingsDir '.rec_state.json'
 $Script:ChunkDuration = 300
 $Script:ToolsRoot = Join-Path $env:LOCALAPPDATA 'opencode-tools'
 $Script:WhisperDir = Join-Path $Script:ToolsRoot 'whisper.cpp'
+$Script:InstallLogFile = Join-Path $Script:ToolsRoot 'rec-install.log'
+$Script:InstallPidFile = Join-Path $Script:ToolsRoot 'rec-install.pid'
 
 $script:FfmpegPath = $null
 $script:WhisperCliPath = $null
@@ -852,7 +854,9 @@ Commandes :
   list                    Lister les enregistrements
   recover [N|all]         Recuperer des chunks orphelins
   clean [--all]           Nettoyer les chunks complets
-  install                 Installer les dependances
+  install                 Lancer l'installation des dependances en arriere-plan
+  install-status          Afficher la progression de l'installation
+  install --window        Lancer l'installation dans une fenetre PowerShell
 '@
 }
 
@@ -1014,6 +1018,91 @@ function Install-Dependencies {
   Write-Output 'Redemarre OpenCode Desktop pour charger la commande /rec.'
 }
 
+function Start-InstallAsync($openWindow) {
+  New-Item -ItemType Directory -Force -Path $Script:ToolsRoot | Out-Null
+
+  if (Test-Path $Script:InstallPidFile) {
+    $oldPidText = (Get-Content $Script:InstallPidFile -Raw -ErrorAction SilentlyContinue).Trim()
+    if ($oldPidText -match '^\d+$' -and (Test-PidAlive ([int]$oldPidText))) {
+      Write-Output 'Installation /rec deja en cours.'
+      Write-Output "- pid : $oldPidText"
+      Write-Output "- log : $Script:InstallLogFile"
+      Write-Output 'Utilise /rec install-status pour suivre la progression.'
+      return
+    }
+  }
+
+  $scriptPath = Join-Path (Get-Location) '.opencode\scripts\rec\rec.ps1'
+  $escapedScript = $scriptPath.Replace("'", "''")
+  $escapedLog = $Script:InstallLogFile.Replace("'", "''")
+  $escapedPid = $Script:InstallPidFile.Replace("'", "''")
+  $cmd = @"
+`$ErrorActionPreference = 'Stop'
+try {
+  & '$escapedScript' -Command install-run *>&1 | Tee-Object -FilePath '$escapedLog'
+} catch {
+  `$message = "INSTALLATION /rec EN ERREUR : `$(`$_.Exception.Message)"
+  `$message | Tee-Object -FilePath '$escapedLog' -Append
+  exit 1
+} finally {
+  Remove-Item '$escapedPid' -Force -ErrorAction SilentlyContinue
+}
+"@
+  $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($cmd))
+
+  if ($openWindow) {
+    $process = Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-NoExit', '-EncodedCommand', $encoded) -PassThru
+    $pid = $process.Id
+  } else {
+    $pid = Start-DetachedProcess "powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand $encoded"
+  }
+
+  Set-Content $Script:InstallPidFile $pid -Encoding UTF8
+
+  Write-Output 'Installation /rec lancee.'
+  Write-Output "- pid : $pid"
+  Write-Output "- log : $Script:InstallLogFile"
+  if ($openWindow) { Write-Output '- affichage : fenetre PowerShell separee' }
+  Write-Output 'Utilise /rec install-status pour suivre la progression dans OpenCode.'
+}
+
+function Show-InstallStatus {
+  $pidText = ''
+  if (Test-Path $Script:InstallPidFile) { $pidText = (Get-Content $Script:InstallPidFile -Raw -ErrorAction SilentlyContinue).Trim() }
+  $running = $false
+  if ($pidText -match '^\d+$') { $running = Test-PidAlive ([int]$pidText) }
+
+  Write-Output 'Statut installation /rec'
+  if ($pidText) { Write-Output "- pid : $pidText" }
+  Write-Output "- en cours : $running"
+  Write-Output "- log : $Script:InstallLogFile"
+
+  $ffmpeg = Get-Command ffmpeg -ErrorAction SilentlyContinue
+  if ($ffmpeg) { Write-Output "- ffmpeg : $($ffmpeg.Source)" } else { Write-Output '- ffmpeg : absent du PATH courant' }
+
+  $whisperCli = Join-Path $Script:WhisperDir 'Release\whisper-cli.exe'
+  if (Test-Path $whisperCli) { Write-Output "- whisper-cli : $whisperCli" } else { Write-Output '- whisper-cli : absent' }
+
+  $modelFile = Join-Path $Script:WhisperDir 'models\ggml-small.bin'
+  if (Test-Path $modelFile) {
+    $size = (Get-Item $modelFile).Length
+    $percent = [math]::Round(($size * 100.0) / 487601967, 1)
+    Write-Output "- modele : $size / 487601967 octets ($percent%)"
+  } else {
+    Write-Output '- modele : absent'
+  }
+
+  if (Test-Path $Script:InstallLogFile) {
+    Write-Output ''
+    Write-Output 'Dernieres lignes du log :'
+    $lines = @(Get-Content $Script:InstallLogFile -Encoding UTF8 -ErrorAction SilentlyContinue)
+    foreach ($line in ($lines | Select-Object -Last 80)) { Write-Output $line }
+  } else {
+    Write-Output ''
+    Write-Output 'Aucun log disponible.'
+  }
+}
+
 if ($Help) { Show-Usage; return }
 
 if ($WatchTranscript) {
@@ -1072,7 +1161,9 @@ if (-not $Command -and $args.Count -gt 0) { $Command = $args[0] }
 switch ($Command) {
   '' { Show-Usage; return }
   'help' { Show-Usage; return }
-  'install' { Install-Dependencies }
+  'install' { Start-InstallAsync ($Selector -eq '--window') }
+  'install-run' { Install-Dependencies }
+  'install-status' { Show-InstallStatus }
   'video' { Start-Recording 'video' $false $Title }
   'video+' { Start-Recording 'video' $true $Title }
   'audio' { Start-Recording 'audio' $false $Title }

@@ -18,7 +18,9 @@ Commande pour enregistrement ecran/audio avec transcription live (whisper.cpp), 
 /rec list               Lister les enregistrements
 /rec recover [N|all]    Recuperer des chunks orphelins
 /rec clean [--all]      Nettoyer les chunks deja fusionnes
-/rec install            Installer les dependances (ffmpeg, whisper, modele)
+/rec install            Lancer l'installation des dependances
+/rec install-status     Afficher la progression de l'installation
+/rec install --window   Lancer l'installation dans une fenetre PowerShell
 ```
 
 ## Installation
@@ -42,12 +44,15 @@ Les dependances sont installees separement avec `/rec install` :
 - **whisper-cli** (telecharge depuis GitHub releases)
 - **Modele whisper** `ggml-small.bin` (telecharge depuis HuggingFace)
 
-L'installation affiche les etapes en cours et la progression des gros telechargements.
+Dans OpenCode, `/rec install` lance l'installation en arriere-plan et retourne immediatement le PID et le chemin du log. La progression est visible avec `/rec install-status`.
+
+Pour voir la progression en direct dans une fenetre separee, utiliser `/rec install --window`.
 
 Apres le redemarrage d'OpenCode Desktop, lancer :
 
 ```text
 /rec install
+/rec install-status
 ```
 
 Ce mode peut aussi etre relance plus tard pour reparer une installation incomplete.
