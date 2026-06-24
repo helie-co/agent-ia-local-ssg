@@ -367,7 +367,7 @@ function Invoke-TranscribeChunk($chunkFile, $language) {
   $modelSize = (Get-Item $model).Length
   if ($modelSize -lt 400MB) { throw "Modele whisper incomplet (${modelSize} octets). Supprime le fichier et relance la transcription pour re-telecharger." }
 
-  if ($chunkFile.Extension -in '.ts', '.mp4') {
+  if ($chunkFile.Extension -in '.ts', '.mp4', '.mp3') {
     $wavFile = Join-Path $chunkFile.DirectoryName "$($chunkFile.BaseName)_audio.wav"
     $ffErr = & $ffmpeg -y -i $chunkFile.FullName -vn -ac 1 -ar 16000 $wavFile 2>&1
     if ($LASTEXITCODE -ne 0) { throw "Extraction audio a echoue pour $($chunkFile.Name) : $ffErr" }
