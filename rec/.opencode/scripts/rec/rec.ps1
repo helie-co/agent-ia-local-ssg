@@ -117,7 +117,7 @@ function Show-Devices {
   }
   Write-Output ""
   if (-not $micFound) { Write-Output "ATTENTION: aucun micro detecte. La transcription sera silencieuse." }
-  if (-not $sysFound) { Write-Output "ATTENTION: aucun Stereo Mix detecte. Modifier les sons systeme > Enregistrement > Stereo Mix > Bouton droit > Activer > OK." }
+  if (-not $sysFound) { Write-Output "ATTENTION: aucun Stereo Mix detecte. Modifier les sons système > Enregistrement > Stéréo Mix > Bouton droit > Activer > OK." }
   if ($micFound -and $sysFound) { Write-Output "OK: Micro et Stereo Mix trouves, enregistrement audio+ fonctionnel." }
 }
 
@@ -367,7 +367,7 @@ function Invoke-TranscribeChunk($chunkFile, $language) {
   $modelSize = (Get-Item $model).Length
   if ($modelSize -lt 400MB) { throw "Modele whisper incomplet (${modelSize} octets). Supprime le fichier et relance la transcription pour re-telecharger." }
 
-  if ($chunkFile.Extension -in '.ts', '.mp4', '.mp3') {
+  if ($chunkFile.Extension -in '.mp3', '.ts', '.mp4') {
     $wavFile = Join-Path $chunkFile.DirectoryName "$($chunkFile.BaseName)_audio.wav"
     $ffErr = & $ffmpeg -y -i $chunkFile.FullName -vn -ac 1 -ar 16000 $wavFile 2>&1
     if ($LASTEXITCODE -ne 0) { throw "Extraction audio a echoue pour $($chunkFile.Name) : $ffErr" }
@@ -410,6 +410,9 @@ function Concat-Chunks($timestamp, $chunks, $finalFile) {
 function Start-FinalizeAsync($session, $language) {
   $scriptPath = Join-Path (Get-Location) '.opencode\scripts\rec\rec.ps1'
   $tempFile = Join-Path $env:TEMP "rec_finalize_$([guid]::NewGuid().ToString('N')).ps1"
+  # Ecriture du marqueur de finalisation en cours
+  $finalizeMarker = Join-Path $Script:RecordingsDir ".rec_finalize_$($session.timestamp).json"
+  @{ timestamp = $session.timestamp; mode = $session.mode; output_file = $session.output_file; started_at_utc = (Get-NowUtcIso) } | ConvertTo-Json | Set-Content $finalizeMarker -Encoding UTF8
   $finalScript = @"
 `$root = '$((Split-Path $session.output_file -Parent).Replace("'","''"))'
 `$ts = '$($session.timestamp)'
@@ -452,6 +455,9 @@ function Do-FinalizeChunked($timestamp, $mode, $outputFile, $language) {
       Remove-Item $chunkTxt -Force -ErrorAction SilentlyContinue
     }
   }
+  # Suppression du marqueur de finalisation en cours
+  $finalizeMarker = Join-Path $root ".rec_finalize_$timestamp.json"
+  Remove-Item $finalizeMarker -Force -ErrorAction SilentlyContinue
 }
 
 function Finalize-Chunked($session, $language) {
@@ -526,11 +532,28 @@ function Stop-Recording($selector, $language) {
   }
 }
 
+function Get-FinalizeMarkers {
+  if (-not (Test-Path $Script:RecordingsDir)) { return @() }
+  $markers = @(Get-ChildItem -Path $Script:RecordingsDir -Filter '.rec_finalize_*.json' -ErrorAction SilentlyContinue)
+  $result = @()
+  foreach ($m in $markers) {
+    try {
+      $data = Get-Content $m.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+      $result += $data
+    } catch {}
+  }
+  return $result
+}
+
 function Get-Status {
   $sessions = @(Get-StateSessions)
-  if ($sessions.Count -eq 0) { Write-Output 'aucun enregistrement actif'; return }
+  $finalizing = @(Get-FinalizeMarkers)
 
-  Write-Output "enregistrement(s) actif(s) ($($sessions.Count))"
+  if ($sessions.Count -eq 0 -and $finalizing.Count -eq 0) { Write-Output 'aucun enregistrement actif'; return }
+
+  if ($sessions.Count -gt 0) {
+    Write-Output "enregistrement(s) actif(s) ($($sessions.Count))"
+  }
   for ($i = 0; $i -lt $sessions.Count; $i++) {
     $session = $sessions[$i]
     $plus = if ($session.chunked) { '+' } else { '' }
@@ -541,6 +564,14 @@ function Get-Status {
     $progress = Get-SessionTranscriptionProgress $session
     if ($progress.chunks_detected -eq 0) { Write-Output '   transcription : attente du premier chunk...'; continue }
     Write-Output "   transcription : $($progress.chunks_transcribed)/$($progress.chunks_detected) chunks ($($progress.percent)%) | dernier chunk : $($progress.last_chunk_index)"
+  }
+
+  if ($finalizing.Count -gt 0) {
+    Write-Output "finalisation(s) en cours ($($finalizing.Count))"
+    foreach ($f in $finalizing) {
+      $plus = if ($f.mode -match 'audio|video') { '+' } else { '' }
+      Write-Output "- $(Format-Timestamp $f.timestamp) | $($f.mode)+ | fusion+transcription en cours | $($f.timestamp)"
+    }
   }
 }
 
@@ -565,7 +596,7 @@ function Invoke-TranscribeFile($file, $language) {
   $whisperInput = $src.FullName
   $tempWav = $null
 
-  if ($src.Extension -in '.mp4', '.ts', '.mov', '.mkv', '.webm') {
+  if ($src.Extension -in '.mp3', '.mp4', '.ts', '.mov', '.mkv', '.webm') {
     Write-Output "[transcribe] extraction audio de $($src.Name)..."
     $tempWav = Join-Path $src.DirectoryName "$($src.BaseName)_audio.wav"
     $ffErr = & $ffmpeg -y -i $src.FullName -vn -ac 1 -ar 16000 $tempWav 2>&1
@@ -849,7 +880,7 @@ Commandes :
   audio+ [--titre T]      Enregistrement audio + transcription directe
   stop [--langue fr]      Arreter l'enregistrement et finaliser
   status                  Afficher la progression
-  transcribe [--fichier F] Transcrire un fichier
+  transcribe [F]           Transcrire un fichier
   devices                 Lister les peripheriques audio
   list                    Lister les enregistrements
   recover [N|all]         Recuperer des chunks orphelins
@@ -900,9 +931,6 @@ function Download-FileWithProgress {
           $nextLog = $downloaded + [int64](10MB)
         }
       }
-      if ($total -gt 0 -and $downloaded -lt $total) {
-        throw "$Label : telechargement incomplet ($downloaded / $total octets)"
-      }
       Write-Output "$Label : telechargement termine ($downloaded octets)"
     } finally {
       if ($outputStream) { $outputStream.Dispose() }
@@ -923,7 +951,6 @@ function Install-Dependencies {
   $whisperDir = Join-Path $toolsRoot 'whisper.cpp'
   $modelDir = Join-Path $whisperDir 'models'
   $modelFile = Join-Path $modelDir 'ggml-small.bin'
-  $modelPart = "$modelFile.part"
 
   Write-Output "tools_root=$toolsRoot"
 
@@ -987,24 +1014,12 @@ function Install-Dependencies {
     Write-Output 'Modele present mais incomplet. Suppression puis nouveau telechargement.'
     Remove-Item $modelFile -Force
   }
-  if (Test-Path $modelPart) {
-    Write-Output 'Telechargement precedent incomplet detecte. Suppression du fichier temporaire.'
-    Remove-Item $modelPart -Force
-  }
 
   if (-not (Test-Path $modelFile)) {
     Write-Output 'Modele absent. Telechargement du modele ggml-small.bin...'
     Write-Output 'Cette etape peut prendre plusieurs minutes selon la connexion.'
     New-Item -ItemType Directory -Force -Path $modelDir | Out-Null
-    try {
-      Download-FileWithProgress -Uri 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin' -OutFile $modelPart -Label 'modele whisper'
-      $partSize = (Get-Item $modelPart).Length
-      if ($partSize -lt 400MB) { throw "Modele whisper incomplet apres telechargement: $modelPart ($partSize octets)" }
-      Move-Item -LiteralPath $modelPart -Destination $modelFile -Force
-    } catch {
-      Remove-Item $modelPart -Force -ErrorAction SilentlyContinue
-      throw "Telechargement du modele whisper interrompu ou incomplet. Relance /rec install pour recommencer. Detail: $($_.Exception.Message)"
-    }
+    Download-FileWithProgress -Uri 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin' -OutFile $modelFile -Label 'modele whisper'
   } else {
     Write-Output 'Modele deja present.'
   }
@@ -1012,7 +1027,7 @@ function Install-Dependencies {
   Write-Output "modele=$modelFile"
 
   $modelSize = (Get-Item $modelFile).Length
-  if ($modelSize -lt 400MB) { Remove-Item $modelFile -Force -ErrorAction SilentlyContinue; throw "Modele whisper incomplet: $modelFile ($modelSize octets). Relance /rec install pour recommencer." }
+  if ($modelSize -lt 400MB) { throw "Modele whisper incomplet: $modelFile ($modelSize octets). Supprime ce fichier puis relance /rec install." }
   Write-Output "modele_taille=$($modelSize) octets"
 
   Write-Output ''
@@ -1026,7 +1041,7 @@ function Install-Dependencies {
     Write-Output ''
     Write-Output '=== Stereo Mix non detecte ==='
     Write-Output 'Pour enregistrer l audio systeme :'
-    Write-Output 'Modifier les sons systeme > Enregistrement > Stereo Mix > Bouton droit > Activer > OK'
+    Write-Output 'Modifier les sons système > Enregistrement > Stéréo Mix > Bouton droit > Activer > OK'
   }
 
   Write-Output ''
@@ -1104,10 +1119,6 @@ function Show-InstallStatus {
     $size = (Get-Item $modelFile).Length
     $percent = [math]::Round(($size * 100.0) / 487601967, 1)
     Write-Output "- modele : $size / 487601967 octets ($percent%)"
-  } elseif (Test-Path "$modelFile.part") {
-    $size = (Get-Item "$modelFile.part").Length
-    $percent = [math]::Round(($size * 100.0) / 487601967, 1)
-    Write-Output "- modele : $size / 487601967 octets ($percent%)"
   } else {
     Write-Output '- modele : absent'
   }
@@ -1116,11 +1127,7 @@ function Show-InstallStatus {
     Write-Output ''
     Write-Output 'Dernieres lignes du log :'
     $lines = @(Get-Content $Script:InstallLogFile -Encoding UTF8 -ErrorAction SilentlyContinue)
-    foreach ($line in ($lines | Select-Object -Last 80)) {
-      $line = $line -replace 'Modifier les sons syst..me > Enregistrement > St..r..o Mix > Bouton droit > Activer > OK', 'Modifier les sons systeme > Enregistrement > Stereo Mix > Bouton droit > Activer > OK'
-      $line = $line -replace 'Modifier les sons système > Enregistrement > Stéréo Mix > Bouton droit > Activer > OK', 'Modifier les sons systeme > Enregistrement > Stereo Mix > Bouton droit > Activer > OK'
-      Write-Output $line
-    }
+    foreach ($line in ($lines | Select-Object -Last 80)) { Write-Output $line }
   } else {
     Write-Output ''
     Write-Output 'Aucun log disponible.'
@@ -1173,7 +1180,10 @@ if ($RawArgs) {
         '--language' { $i++; if ($i -lt $tokens.Count) { $Language = $tokens[$i] } }
         '--langue' { $i++; if ($i -lt $tokens.Count) { $Language = $tokens[$i] } }
         '--all'   { $All = $true }
-        default   { if (-not $Selector) { $Selector = $tokens[$i] } }
+        default   {
+          if ($Command -eq 'transcribe' -and -not $File) { $File = $tokens[$i] }
+          elseif (-not $Selector) { $Selector = $tokens[$i] }
+        }
       }
       $i++
     }
